@@ -4,19 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>From Wallet Seed to Ethereum Address</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="report.css">
 </head>
 <body>
 
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
 <header>
-  <h1>From Wallet Seed to Ethereum Address</h1>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW2 · WALLET</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+    <div class="tb-cell"><span class="tb-label">rev</span><span class="tb-value">A</span></div>
+  </div>
+  <h1>From wallet seed<br>to Ethereum address</h1>
   <p class="subtitle">Hashing, key derivation and cryptographic primitives behind an Ethereum wallet.</p>
 </header>
 
 <main>
 
   <section class="card">
-    <h2>1. The pipeline</h2>
+    <h2><span class="num">01</span>The pipeline</h2>
     <p>
       An Ethereum wallet is not one algorithm doing one job end to end. It is a chain of five independent
       primitives, each solving a different problem, wired together in a fixed order:
@@ -44,7 +58,7 @@
   </section>
 
   <section class="card">
-    <h2>2. Role of each primitive</h2>
+    <h2><span class="num">02</span>Role of each primitive</h2>
 
     <div class="prim">
       <h3>BIP-39 &mdash; mnemonic sentence and seed generation</h3>
@@ -113,7 +127,7 @@
   </section>
 
   <section class="card">
-    <h2>3. Five different jobs, five different categories</h2>
+    <h2><span class="num">03</span>Five different jobs, five different categories</h2>
     <p>
       It helps to separate what each step <em>is</em>, not just what it does:
     </p>
@@ -135,7 +149,7 @@
   </section>
 
   <section class="card">
-    <h2>4. Statistical properties, and why the comparison with HMWK1 matters</h2>
+    <h2><span class="num">04</span>Statistical properties, and why the comparison with HMWK1 matters</h2>
     <p>
       HMWK1's toy-curve experiment showed that Q = kG is deterministic and algebraically structured
       (Q(k+1) = Q(k) + G, and the whole sequence cycles with period equal to the subgroup order). Flipping a
@@ -162,7 +176,7 @@
   </section>
 
   <section class="card">
-    <h2>5. Historical and temporal context</h2>
+    <h2><span class="num">05</span>Historical and temporal context</h2>
     <div class="timeline">
       <div class="trow"><span class="tyear">1977</span><span class="tdesc"><strong>RSA</strong> &mdash; first practical public-key cryptosystem, based on the hardness of factoring.</span></div>
       <div class="trow"><span class="tyear">2001</span><span class="tdesc"><strong>SHA-2 / SHA-512</strong> &mdash; NIST standardises the SHA-2 family (FIPS 180-2), Merkle&ndash;Damgård construction.</span></div>
@@ -182,7 +196,7 @@
   </section>
 
   <section class="card">
-    <h2>6. SHA-2/SHA-512 vs. Keccak/SHA-3 &mdash; not the same thing</h2>
+    <h2><span class="num">06</span>SHA-2/SHA-512 vs. Keccak/SHA-3 &mdash; not the same thing</h2>
     <p>
       SHA-2 (2001) and SHA-3 (2015) are both NIST standards, but they are structurally unrelated: SHA-2 is a
       Merkle&ndash;Damgård hash built from a block cipher-like compression function, while SHA-3 is a sponge
@@ -203,7 +217,7 @@
   </section>
 
   <section class="card">
-    <h2>7. Try it yourself &mdash; Keccak-256 vs. SHA3-256, and EIP-55 live</h2>
+    <h2><span class="num">07</span>Try it yourself <span class="guru-tag">live demo</span> &mdash; Keccak-256 vs. SHA3-256, and EIP-55</h2>
     <p>
       Section 6 claims Keccak-256 and the standardised SHA3-256 differ only in one padding byte. Rather than
       just asserting it, here is a Keccak-f[1600] sponge written directly from the specification (rotation
@@ -234,7 +248,7 @@
   </section>
 
   <section class="card">
-    <h2>8. Why not just use one algorithm for everything?</h2>
+    <h2><span class="num">08</span>Why not just use one algorithm for everything?</h2>
     <p>
       Each primitive in the pipeline is answering a question none of the others can answer:
     </p>
@@ -273,7 +287,7 @@
   </section>
 
   <section class="card">
-    <h2>9. Hands-on notes</h2>
+    <h2><span class="num">09</span>Hands-on notes</h2>
     <p>
       I installed MetaMask and created a throwaway test wallet (no real funds) to check some of the claims
       above against an actual client instead of just the spec.
@@ -350,6 +364,8 @@
 <footer>
   <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK2</p>
 </footer>
+
+</div>
 
 <script src="report.js"></script>
 </body>
