@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toy ECC — Private Key to Public Key</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Private Key &rarr; Public Key on a Toy Elliptic Curve</h1>
+  <p class="subtitle">
+    Scalar multiplication Q = kG, the same operation Ethereum uses on secp256k1 (y&sup2; = x&sup3; + 7 mod p),
+    shrunk down to p = 17 so every point fits on a grid and every step can be checked by hand.
+  </p>
+</header>
+
+<main>
+
+  <section id="curve-def" class="card">
+    <h2>1. The curve</h2>
+    <p>
+      E: y&sup2; &equiv; x&sup3; + 7 &nbsp;(mod 17). Same a = 0, b = 7 as real secp256k1 &mdash; only the field is
+      tiny instead of 256-bit, so it is possible to enumerate every valid point.
+    </p>
+    <div id="curve-points-list" class="mono small"></div>
+  </section>
+
+  <section id="keygen" class="card">
+    <h2>2. Key generation</h2>
+
+    <div class="controls">
+      <label>
+        Base point G
+        <select id="gSelect"></select>
+      </label>
+      <label>
+        Private key k
+        <input type="number" id="kInput" value="6" min="1" step="1">
+      </label>
+      <button id="computeBtn">Generate public key</button>
+    </div>
+
+    <div class="result-line">
+      <strong>TOY PUBLIC KEY:</strong> <span id="publicKeyOut" class="mono">&mdash;</span>
+    </div>
+
+    <div id="stepLog" class="mono small steplog"></div>
+  </section>
+
+  <section id="viz" class="card">
+    <h2>3. Visual walk through kG (guru level)</h2>
+    <p class="hint">
+      Each arrow is one addition: point<sub>i</sub> + G &rarr; point<sub>i+1</sub>. There is no real geometric
+      line here &mdash; coordinates just wrap mod 17 &mdash; the arrows only mark the order in which points of
+      the subgroup get visited.
+    </p>
+    <div class="viz-row">
+      <canvas id="curveCanvas" width="480" height="480"></canvas>
+      <div class="viz-side">
+        <div class="playback">
+          <button id="playBtn">&#9654; Play</button>
+          <button id="stepBtn">Step</button>
+          <button id="resetBtn">Reset</button>
+          <label class="speed">
+            delay (ms)
+            <input type="range" id="speedRange" min="100" max="1500" value="600">
+          </label>
+        </div>
+        <div id="vizInfo" class="mono small"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stats" class="card">
+    <h2>4. Statistical exploration</h2>
+    <p>
+      Repeats Q = kG over a range of k (and, optionally, over every valid base point) to look at the
+      numeric properties of the outputs: coordinate distributions, bit frequencies, input/output
+      correlation, and a bit-flip ("avalanche") test.
+    </p>
+
+    <div class="controls">
+      <label>
+        Base point for the sweep
+        <select id="statGSelect"></select>
+      </label>
+      <label>
+        k range: 1 .. N
+        <input type="number" id="statN" value="27" min="2" step="1">
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="allGCheck">
+        also sweep over every valid base point
+      </label>
+      <button id="runStatsBtn">Run exploration</button>
+    </div>
+
+    <div class="charts-row">
+      <div>
+        <h3>x-coordinate histogram</h3>
+        <canvas id="histX" width="300" height="180"></canvas>
+      </div>
+      <div>
+        <h3>y-coordinate histogram</h3>
+        <canvas id="histY" width="300" height="180"></canvas>
+      </div>
+      <div>
+        <h3>bit frequency of x (bits 0..4)</h3>
+        <canvas id="histBits" width="300" height="180"></canvas>
+      </div>
+    </div>
+
+    <div id="statsText" class="mono small"></div>
+
+    <div id="periodDemo" class="mono small"></div>
+
+    <div id="avalancheDemo" class="mono small"></div>
+  </section>
+
+  <section id="discussion" class="card">
+    <h2>5. Discussion &mdash; one-way function vs. hash function</h2>
+    <p>
+      Both k &rarr; Q = kG and a hash function H are easy forward, hard backward, and deterministic.
+      That is where the similarity ends.
+    </p>
+    <ul>
+      <li>
+        <strong>Structure.</strong> Q = kG is <em>algebraic</em>: Q(k+1) = Q(k) + G exactly, always. A hash
+        function has no such relation &mdash; H(k+1) has nothing predictable in common with H(k). The
+        periodicity table above (k and k + 9 landing on the same point) is only visible because the toy
+        subgroup is tiny; on real secp256k1 the subgroup order n is a 256-bit prime, so the same relation
+        holds but no human will ever see two k values collide.
+      </li>
+      <li>
+        <strong>Avalanche effect.</strong> Flipping one bit of k can send Q anywhere in the subgroup (the
+        double-and-add path changes completely), but incrementing k by 1 only ever shifts Q by a fixed G.
+        A cryptographic hash is designed so that <em>every</em> single-bit change in the input looks like a
+        bit-flip test, with no exceptions and no structure to exploit &mdash; that guarantee is the explicit
+        design goal of a hash function, not of EC scalar multiplication.
+      </li>
+      <li>
+        <strong>Why the one-way property still holds.</strong> Security does not come from Q "looking
+        random" statistically. It comes from the ECDLP: there is no known sub-exponential algorithm to
+        recover k from Q = kG on a well-chosen curve. The hardness is a number-theoretic, structural
+        property of the group, independent of whether the output coordinates pass a uniformity test.
+      </li>
+      <li>
+        <strong>What the statistics above actually show.</strong> Coordinate "uniformity" over a full cycle
+        of a cyclic subgroup is a byproduct of group theory (every element of the subgroup gets visited
+        once per cycle), not evidence of cryptographic strength. Bit-frequency and avalanche tests are the
+        right tool for judging a hash function (that is exactly what HMWK2 uses Keccak-256 for); they are
+        the wrong tool for judging an asymmetric primitive like secp256k1, whose security argument is
+        purely algebraic.
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK1</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

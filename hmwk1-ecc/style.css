@@ -1,0 +1,246 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --recessed: #0c0e13;
+  --border: #2a2e38;
+  --text: #e4e6eb;
+  --muted: #8b92a3;
+  --accent: #5fc9f8;
+  --accent2: #f6a25c;
+  --good: #6fd38f;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --recessed: #f7f8fa;
+    --border: #dadde3;
+    --text: #1b1e24;
+    --muted: #5a6072;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --recessed: #0c0e13;
+  --border: #2a2e38;
+  --text: #e4e6eb;
+  --muted: #8b92a3;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --recessed: #f7f8fa;
+  --border: #dadde3;
+  --text: #1b1e24;
+  --muted: #5a6072;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+header {
+  padding: 2.2rem 1.5rem 1.2rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0 0 0.4rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 0;
+  max-width: 760px;
+}
+
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.3rem 1.5rem;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.card h3 {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0.4rem 0;
+  text-align: center;
+}
+
+.mono {
+  font-family: "Cascadia Code", "Consolas", monospace;
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.controls label.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input, select, button {
+  background: var(--recessed);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+input[type="number"] { width: 7rem; }
+
+button {
+  cursor: pointer;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+button:hover { background: rgba(95, 201, 248, 0.12); }
+button:disabled { opacity: 0.4; cursor: default; }
+
+.result-line {
+  font-size: 1.05rem;
+  margin: 0.6rem 0;
+}
+
+#publicKeyOut { color: var(--good); }
+
+.steplog {
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  white-space: pre-wrap;
+}
+
+.viz-row {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+canvas {
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.viz-side {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.playback {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.speed {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+#vizInfo {
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  min-height: 140px;
+  white-space: pre-wrap;
+}
+
+.charts-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#statsText, #periodDemo, #avalancheDemo {
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  white-space: pre-wrap;
+  margin-top: 0.8rem;
+}
+
+ul { padding-left: 1.2rem; }
+li { margin-bottom: 0.6rem; }
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding-bottom: 2rem;
+}
