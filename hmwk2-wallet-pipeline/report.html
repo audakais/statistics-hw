@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From Wallet Seed to Ethereum Address</title>
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+
+<header>
+  <h1>From Wallet Seed to Ethereum Address</h1>
+  <p class="subtitle">Hashing, key derivation and cryptographic primitives behind an Ethereum wallet.</p>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>1. The pipeline</h2>
+    <p>
+      An Ethereum wallet is not one algorithm doing one job end to end. It is a chain of five independent
+      primitives, each solving a different problem, wired together in a fixed order:
+    </p>
+
+    <div class="pipeline" aria-label="wallet derivation pipeline">
+      <div class="pstep"><span class="pname">Mnemonic</span><span class="plabel">12/24 words</span></div>
+      <div class="parrow">BIP-39</div>
+      <div class="pstep"><span class="pname">Seed</span><span class="plabel">512-bit</span></div>
+      <div class="parrow">BIP-32 / BIP-44</div>
+      <div class="pstep"><span class="pname">Private key</span><span class="plabel">256-bit int</span></div>
+      <div class="parrow">secp256k1</div>
+      <div class="pstep"><span class="pname">Public key</span><span class="plabel">curve point</span></div>
+      <div class="parrow">Keccak-256</div>
+      <div class="pstep"><span class="pname">Address</span><span class="plabel">last 20 bytes</span></div>
+      <div class="parrow">EIP-55</div>
+      <div class="pstep highlight"><span class="pname">Checksummed address</span><span class="plabel">mixed-case hex</span></div>
+    </div>
+
+    <p class="hint">
+      Four of these five arrows are one-way (mnemonic&rarr;seed, public key&rarr;address, address&rarr;checksum
+      encoding); only secp256k1's own forward direction (private&rarr;public key) is reversed by the signature
+      step later, when the wallet proves ownership without ever revealing the private key.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>2. Role of each primitive</h2>
+
+    <div class="prim">
+      <h3>BIP-39 &mdash; mnemonic sentence and seed generation</h3>
+      <p>
+        Takes 128&ndash;256 bits of entropy, maps it onto a fixed 2048-word list, and appends a checksum word
+        derived from a hash of the entropy. The result is a sentence a human can write on paper, read aloud, or
+        type back in without ambiguity. A PBKDF2 pass (with HMAC-SHA512, 2048 rounds) then stretches the
+        mnemonic plus an optional passphrase into a 512-bit seed. BIP-39 is about <em>usability</em> for a
+        secret, not about generating cryptographic randomness &mdash; the entropy has to already be random
+        before BIP-39 ever sees it.
+      </p>
+    </div>
+
+    <div class="prim">
+      <h3>BIP-32 &mdash; hierarchical deterministic (HD) key derivation</h3>
+      <p>
+        Turns one seed into an entire tree of key pairs through repeated HMAC-SHA512 derivation steps, each
+        producing a child private key and a chain code to derive the next level. One seed backup therefore
+        recovers unlimited accounts and addresses, deterministically, without ever storing more than the
+        seed. Without BIP-32 a wallet would need to generate and separately back up a new random key for every
+        single address.
+      </p>
+    </div>
+
+    <div class="prim">
+      <h3>BIP-44 &mdash; standard derivation paths</h3>
+      <p>
+        BIP-32 defines <em>how</em> to derive a child key; BIP-44 defines <em>which</em> children to derive and
+        in what order, via the path <code>m / purpose' / coin_type' / account' / change / index</code>. Ethereum
+        wallets use <code>m/44'/60'/0'/0/0</code> for the first account's first address. Without this
+        convention, two wallets given the same seed could derive completely different addresses; BIP-44 is
+        what makes a seed phrase portable between MetaMask, Rabby, a hardware wallet, and so on.
+      </p>
+    </div>
+
+    <div class="prim">
+      <h3>secp256k1 &mdash; elliptic-curve public-key cryptography</h3>
+      <p>
+        Treats the private key as a scalar k and computes the public key as the point Q = kG on a fixed
+        elliptic curve, exactly the scalar multiplication explored in HMWK1 (same curve shape, real p is a
+        256-bit prime instead of 17). This is the only asymmetric step in the whole pipeline: it is what lets
+        someone sign a transaction with a private key and lets anyone else verify that signature using only
+        the public key, never the private key itself.
+      </p>
+    </div>
+
+    <div class="prim">
+      <h3>Keccak-256 &mdash; hash function used in address derivation</h3>
+      <p>
+        Compresses the 64-byte uncompressed public key down to a 32-byte digest; the Ethereum address is the
+        last 20 bytes of that digest. A hash is the right tool here because an address only needs to be a
+        short, collision-resistant, one-way fingerprint of the public key &mdash; there is no algebraic
+        relationship to preserve, unlike the private-key-to-public-key step.
+      </p>
+    </div>
+
+    <div class="prim">
+      <h3>EIP-55 &mdash; mixed-case checksum encoding</h3>
+      <p>
+        Takes the 40 hex characters of an address, hashes the lowercase string with Keccak-256 again, and uses
+        the hash's bits to decide, character by character, whether each hex digit should be upper- or
+        lowercase. The address itself does not change; this only adds redundancy a client can check in
+        milliseconds to catch a mistyped or corrupted address before funds are sent anywhere.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Five different jobs, five different categories</h2>
+    <p>
+      It helps to separate what each step <em>is</em>, not just what it does:
+    </p>
+    <table class="defs">
+      <tr><th>Category</th><th>What it means here</th><th>Example in the pipeline</th></tr>
+      <tr><td>Key generation</td><td>Producing fresh, unpredictable secret material</td><td>entropy source behind the mnemonic</td></tr>
+      <tr><td>Key derivation</td><td>Deterministically computing new keys from an existing secret, no new randomness</td><td>BIP-32 / BIP-44 child keys</td></tr>
+      <tr><td>Public-key cryptography</td><td>An asymmetric relationship: easy one way, hard to invert, enables signatures</td><td>secp256k1, k &rarr; Q = kG</td></tr>
+      <tr><td>Hashing</td><td>Fixed-size, collision-resistant fingerprint with no algebraic structure to exploit</td><td>Keccak-256, pubkey &rarr; address</td></tr>
+      <tr><td>Checksum</td><td>Redundant, cheaply verifiable data to catch accidental errors, not attacks</td><td>EIP-55 capitalisation pattern</td></tr>
+      <tr><td>Encoding</td><td>Reversible representation of the same bytes in a different alphabet, no cryptography at all</td><td>hex string of the address itself</td></tr>
+    </table>
+    <p>
+      Key derivation and public-key cryptography both involve "hard to invert" relationships, but for different
+      reasons: BIP-32 derivation is hard to invert because it runs data through HMAC-SHA512 (hash-hardness);
+      secp256k1 is hard to invert because of the ECDLP (a specific number-theoretic problem on that one curve).
+      Conflating the two is the single most common mix-up when first reading this pipeline.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>4. Statistical properties, and why the comparison with HMWK1 matters</h2>
+    <p>
+      HMWK1's toy-curve experiment showed that Q = kG is deterministic and algebraically structured
+      (Q(k+1) = Q(k) + G, and the whole sequence cycles with period equal to the subgroup order). Flipping a
+      single bit of k does not reliably scramble every bit of Q the way it would for a hash &mdash; and it does
+      not need to, because secp256k1's security rests on the ECDLP being hard, not on Q "looking random".
+    </p>
+    <p>
+      Keccak-256 is built for the opposite statistical profile on purpose: flipping a single input bit should
+      flip roughly half of the 256 output bits with no predictable pattern (the avalanche property), and the
+      256-bit digest should look statistically indistinguishable from a random string for any structured
+      input, including a 64-byte public key that was itself produced by a very non-random process (scalar
+      multiplication). The checksum in EIP-55 only needs a much weaker property &mdash; that a typo almost
+      always changes the hash, not that the hash is unpredictable under adversarial attack &mdash; which is why
+      it is allowed to reuse Keccak-256 as a cheap source of "looks random enough to catch mistakes" bits
+      rather than requiring its own dedicated error-correcting code.
+    </p>
+    <p>
+      So the same statistical tests used in HMWK1 (coordinate/bit distributions, correlation, avalanche) are
+      diagnostic for very different reasons in each step of this pipeline: for secp256k1 they would at best
+      show the algebraic structure is <em>not</em> hidden (which is fine &mdash; that was never the security
+      argument); for Keccak-256 those same tests are a direct, meaningful check of whether the hash is doing
+      its job.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>5. Historical and temporal context</h2>
+    <div class="timeline">
+      <div class="trow"><span class="tyear">1977</span><span class="tdesc"><strong>RSA</strong> &mdash; first practical public-key cryptosystem, based on the hardness of factoring.</span></div>
+      <div class="trow"><span class="tyear">2001</span><span class="tdesc"><strong>SHA-2 / SHA-512</strong> &mdash; NIST standardises the SHA-2 family (FIPS 180-2), Merkle&ndash;Damgård construction.</span></div>
+      <div class="trow"><span class="tyear">2012</span><span class="tdesc"><strong>BIP-32</strong> &mdash; hierarchical deterministic wallets proposed (Pieter Wuille).</span></div>
+      <div class="trow"><span class="tyear">2013</span><span class="tdesc"><strong>BIP-39</strong> &mdash; mnemonic sentences for deterministic key generation.</span></div>
+      <div class="trow"><span class="tyear">2014</span><span class="tdesc"><strong>BIP-44</strong> &mdash; multi-account hierarchy for HD wallets; Ethereum itself goes live in 2015.</span></div>
+      <div class="trow"><span class="tyear">2015</span><span class="tdesc"><strong>SHA-3</strong> &mdash; NIST standardises SHA-3 (FIPS 202), based on the Keccak sponge construction.</span></div>
+      <div class="trow"><span class="tyear">2016</span><span class="tdesc"><strong>EIP-55</strong> &mdash; mixed-case checksum encoding for Ethereum addresses.</span></div>
+    </div>
+    <p>
+      The ordering is not an accident: Ethereum's design (2013&ndash;2015) borrowed secp256k1 directly from
+      Bitcoin and adopted Keccak <em>before</em> NIST had finished standardising SHA-3, which is exactly why it
+      ended up with a slightly non-standard hash. BIP-39/32/44 were being finalised in the Bitcoin ecosystem at
+      almost the same moment Ethereum was being designed, so Ethereum wallets reuse the same HD scheme rather
+      than inventing a new one.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>6. SHA-2/SHA-512 vs. Keccak/SHA-3 &mdash; not the same thing</h2>
+    <p>
+      SHA-2 (2001) and SHA-3 (2015) are both NIST standards, but they are structurally unrelated: SHA-2 is a
+      Merkle&ndash;Damgård hash built from a block cipher-like compression function, while SHA-3 is a sponge
+      construction built around the Keccak permutation, chosen specifically <em>because</em> it does not share
+      SHA-2's design (the 2007&ndash;2012 SHA-3 competition was triggered by theoretical attacks on
+      Merkle&ndash;Damgård hashes, and NIST wanted a structurally different backup).
+    </p>
+    <p>
+      Keccak and SHA-3 are closer, but still not identical. Keccak was the submission that won the SHA-3
+      competition in 2012; when NIST finalised it as FIPS 202 in 2015, it added extra domain-separation bits to
+      the padding (so that SHA3-256, SHA3-512 and the SHAKE variants can all share the same permutation without
+      colliding). Ethereum's <code>Keccak-256</code> was wired into the protocol in 2014&ndash;2015, using the
+      original, pre-standardisation Keccak padding &mdash; so <code>Keccak-256("abc")</code> and the
+      standardised <code>SHA3-256("abc")</code> are two different 32-byte digests for the same input, even
+      though both run the same underlying permutation. Every "keccak256" function in Solidity and in Ethereum
+      client code means the original Keccak, never NIST's SHA3-256.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>7. Try it yourself &mdash; Keccak-256 vs. SHA3-256, and EIP-55 live</h2>
+    <p>
+      Section 6 claims Keccak-256 and the standardised SHA3-256 differ only in one padding byte. Rather than
+      just asserting it, here is a Keccak-f[1600] sponge written directly from the specification (rotation
+      offsets and round constants generated at load time, not hard-coded from a table) run live in this page,
+      with only that one byte toggled between the two functions:
+    </p>
+
+    <div class="demo">
+      <label class="demo-label" for="hashInput">text to hash</label>
+      <input type="text" id="hashInput" class="demo-input">
+      <div class="demo-row"><span class="demo-tag keccak">Keccak-256</span><span id="keccakOut" class="mono small"></span></div>
+      <div class="demo-row"><span class="demo-tag sha3">SHA3-256</span><span id="sha3Out" class="mono small"></span></div>
+      <div id="diffNote" class="hint small"></div>
+    </div>
+
+    <p>
+      And the practical use of Keccak-256 downstream, EIP-55: type any 40-hex-character address, the page
+      hashes the lowercase string and capitalises each letter whose corresponding hash nibble is &ge; 8 &mdash;
+      the exact rule from section 2.
+    </p>
+
+    <div class="demo">
+      <label class="demo-label" for="addrInput">address (with or without 0x)</label>
+      <input type="text" id="addrInput" class="demo-input mono">
+      <div class="demo-row"><span class="demo-tag good">checksummed</span><span id="addrOut" class="mono addr-out"></span></div>
+      <div id="addrError" class="hint small"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>8. Why not just use one algorithm for everything?</h2>
+    <p>
+      Each primitive in the pipeline is answering a question none of the others can answer:
+    </p>
+    <ul>
+      <li>
+        <strong>BIP-39/32/44 &rarr; key management.</strong> The question is "how do I back up and organise
+        many keys from one secret?" This has nothing to do with cryptographic hardness; it is a usability and
+        bookkeeping problem, solved with deterministic derivation (HMAC-SHA512 used purely as a good
+        pseudorandom function, not for any hashing property).
+      </li>
+      <li>
+        <strong>secp256k1 &rarr; ownership and signatures.</strong> The question is "how does someone prove
+        they control a key without revealing it?" Only an asymmetric primitive with a hard inversion problem
+        (ECDLP) can answer that; no hash function can substitute for a digital signature scheme.
+      </li>
+      <li>
+        <strong>Keccak-256 &rarr; compression and fingerprinting.</strong> The question is "how do I get a
+        short, fixed-size, collision-resistant identifier from an arbitrary-size public key?" That is exactly
+        what a hash is designed for, and nothing else in the pipeline is.
+      </li>
+      <li>
+        <strong>EIP-55 &rarr; error detection.</strong> The question is "how does a human catch a typo before
+        sending funds to the wrong address?" This needs redundancy that is cheap to verify, not cryptographic
+        strength against an adversary &mdash; which is why it is allowed to just reuse Keccak-256 rather than
+        needing its own primitive.
+      </li>
+    </ul>
+    <p>
+      Using one algorithm for all four jobs would mean picking a tool that is simultaneously great at being
+      reversible-by-design (derivation), irreversible-by-hardness (signatures), irreversible-by-collision-
+      resistance (hashing), and cheaply-redundant (checksums) &mdash; properties that are partly in direct
+      tension with each other. Composing specialised primitives, each independently replaceable (as happened
+      when Ethereum could in principle swap Keccak for SHA-3 without touching secp256k1 or BIP-32), is a more
+      robust engineering choice than one monolithic algorithm would ever be.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>9. Hands-on notes</h2>
+    <p>
+      I installed MetaMask and created a throwaway test wallet (no real funds) to check some of the claims
+      above against an actual client instead of just the spec.
+    </p>
+    <p>
+      <strong>Derivation path.</strong> I went looking for the BIP-44 path (<code>m/44'/60'/0'/0/0</code>)
+      under "Account details" and "Show private key", expecting to see it printed somewhere next to the key.
+      I didn't find it anywhere in the normal UI &mdash; MetaMask will export the raw private key, but it does
+      not surface the derivation path itself to the end user. That is a useful data point on its own: BIP-44
+      is working under the hood (the key clearly came from <em>somewhere</em> in a deterministic tree, since
+      the wallet can regenerate every account from the same seed), but the wallet treats the path as an
+      implementation detail, not something a normal user is expected to ever see or care about.
+    </p>
+    <p>
+      <strong>Checksum, verified against my own implementation.</strong> My test account's address, exactly
+      as MetaMask displays it, is:
+    </p>
+    <p class="mono addr-example">0xeDda9A3c677A14379Bd645f731c443551Eade4f2</p>
+    <p>
+      I ran this same address (lowercased) through the EIP-55 tool built for section 7 of this page, and the
+      capitalisation it computed matched MetaMask's version character for character. That is a small but
+      concrete confirmation that the Keccak-256 implementation above &mdash; written from the specification,
+      not copied from a library &mdash; actually agrees with a real wallet's output, not only with Node's
+      built-in SHA3-256 test vectors.
+    </p>
+    <p>
+      <strong>Checksum, broken on purpose.</strong> I took my own address and flipped one letter's case
+      (<code>0xeDda...</code> &rarr; <code>0xEDda...</code>, first character only), which should fail EIP-55
+      validation &mdash; a correctly-checksummed address would never have that exact capitalisation. I pasted
+      it into MetaMask's "Send" recipient field: no warning, no error, nothing. MetaMask accepted it as a
+      normal destination with no visible difference from a valid address.
+    </p>
+    <p>
+      That is a more interesting result than a clean confirmation would have been. Section 2 describes EIP-55
+      as something that lets "a client catch a mistyped or corrupted address before funds are sent anywhere" &mdash;
+      and that is true of the <em>specification</em>, but my own test shows it is not necessarily true of a
+      given client's UI. The checksum is only useful if whatever software is reading the address actually
+      bothers to verify it and surface a warning; nothing in the protocol forces that. A capitalisation typo
+      that happens to still be 40 valid hex characters will go to whatever address those hex digits decode to,
+      silently, at least in the version of MetaMask I tested. The cryptographic design is sound; whether it
+      protects a user in practice depends entirely on whether someone implemented the check in the client.
+    </p>
+    <p>
+      <strong>Second wallet, for comparison: Rabby.</strong> I installed Rabby separately (a different,
+      independent test wallet, not an import of the MetaMask one) to see whether the two points above are
+      MetaMask quirks or general to EVM wallets. Its address:
+    </p>
+    <p class="mono addr-example">0xE0553F3f3C22248D1190CDe7138A0483d6caB4A0</p>
+    <p>
+      Checked against the same from-scratch EIP-55 tool: matches character for character again &mdash; two
+      independent wallets now agree with this page's own Keccak-256 implementation, which is a stronger check
+      than one coincidence would have been.
+    </p>
+    <p>
+      On the derivation path, Rabby behaves the same as MetaMask: digging through address management only
+      ever surfaces the address itself, never the <code>m/44'/60'/0'/0/0</code> path. So that is not a
+      MetaMask-specific choice to hide implementation detail &mdash; it looks like a shared convention across
+      mainstream wallet UIs, presumably because the path is genuinely irrelevant to a user who only ever uses
+      the first default account.
+    </p>
+    <p>
+      The checksum test is where the two wallets disagree, and this is the sharpest finding of the whole
+      section. Pasting the exact same kind of single-letter-case-flipped address that MetaMask accepted
+      silently, Rabby's "Send" screen immediately rejected it with <strong>"This address is invalid"</strong>.
+      Same EIP-55 standard, same kind of broken input, opposite outcomes. That settles the question raised
+      above: EIP-55 enforcement is not guaranteed by the standard, it is a per-client implementation choice
+      &mdash; and in this small, informal test, Rabby implements the safety net the specification was designed
+      to provide, and the version of MetaMask I used does not.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK2</p>
+</footer>
+
+<script src="report.js"></script>
+</body>
+</html>

@@ -1,0 +1,301 @@
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --recessed: #0c0e13;
+  --field: #0f1115;
+  --border: #2a2e38;
+  --text: #e4e6eb;
+  --muted: #8b92a3;
+  --accent: #5fc9f8;
+  --accent2: #f6a25c;
+  --good: #6fd38f;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --recessed: #f7f8fa;
+    --field: #ffffff;
+    --border: #dadde3;
+    --text: #1b1e24;
+    --muted: #5a6072;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --recessed: #0c0e13;
+  --field: #0f1115;
+  --border: #2a2e38;
+  --text: #e4e6eb;
+  --muted: #8b92a3;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --recessed: #f7f8fa;
+  --field: #ffffff;
+  --border: #dadde3;
+  --text: #1b1e24;
+  --muted: #5a6072;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+header {
+  padding: 2.2rem 1.5rem 1.2rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0 0 0.4rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 0;
+}
+
+main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.3rem 1.6rem;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.card h3 {
+  font-size: 0.98rem;
+  margin: 0 0 0.3rem;
+  color: var(--accent2);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+code {
+  font-family: "Cascadia Code", "Consolas", monospace;
+  background: var(--recessed);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.prim { margin-bottom: 1.1rem; }
+.prim:last-child { margin-bottom: 0; }
+
+ul { padding-left: 1.2rem; }
+li { margin-bottom: 0.7rem; }
+
+/* pipeline diagram */
+
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1.2rem 0;
+}
+
+.pstep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  min-width: 110px;
+  text-align: center;
+}
+
+.pstep.highlight {
+  border-color: var(--good);
+}
+
+.pname {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.plabel {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.parrow {
+  font-size: 0.72rem;
+  color: var(--accent);
+  white-space: nowrap;
+  padding: 0 0.2rem;
+  font-family: "Cascadia Code", "Consolas", monospace;
+}
+
+.parrow::before { content: "→ "; color: var(--muted); }
+.parrow::after { content: " →"; color: var(--muted); }
+
+/* definitions table */
+
+table.defs {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+  font-size: 0.88rem;
+}
+
+table.defs th, table.defs td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+table.defs th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* timeline */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid var(--border);
+  margin: 1rem 0 1rem 0.4rem;
+  padding-left: 1.2rem;
+}
+
+.trow {
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.trow::before {
+  content: "";
+  position: absolute;
+  left: -1.47rem;
+  top: 0.9rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tyear {
+  display: inline-block;
+  min-width: 3.2rem;
+  color: var(--accent);
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-weight: 600;
+}
+
+.tdesc { color: var(--text); }
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding-bottom: 2rem;
+}
+
+/* live JS demos */
+
+.mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.small { font-size: 0.82rem; }
+
+.demo {
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  margin: 1rem 0;
+}
+
+.demo-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.demo-input {
+  width: 100%;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.7rem;
+}
+
+.demo-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  word-break: break-all;
+  margin-bottom: 0.3rem;
+}
+
+.demo-tag {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.demo-tag.keccak { color: var(--accent); }
+.demo-tag.sha3 { color: var(--accent2); }
+.demo-tag.good { color: var(--good); }
+
+.addr-out { font-size: 0.95rem; }
+.addr-out .upper { color: var(--good); font-weight: 700; }
+
+.addr-example {
+  background: var(--recessed);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.95rem;
+  display: inline-block;
+}
