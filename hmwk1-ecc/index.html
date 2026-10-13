@@ -4,12 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Toy ECC — Private Key to Public Key</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
 <header>
-  <h1>Private Key &rarr; Public Key on a Toy Elliptic Curve</h1>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW1 · ECC</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+    <div class="tb-cell"><span class="tb-label">rev</span><span class="tb-value">A</span></div>
+  </div>
+  <h1>Private key <span class="arrow-glyph">&rarr;</span> public key<br>on a toy elliptic curve</h1>
   <p class="subtitle">
     Scalar multiplication Q = kG, the same operation Ethereum uses on secp256k1 (y&sup2; = x&sup3; + 7 mod p),
     shrunk down to p = 17 so every point fits on a grid and every step can be checked by hand.
@@ -19,16 +33,16 @@
 <main>
 
   <section id="curve-def" class="card">
-    <h2>1. The curve</h2>
+    <h2><span class="num">01</span>The curve</h2>
     <p>
       E: y&sup2; &equiv; x&sup3; + 7 &nbsp;(mod 17). Same a = 0, b = 7 as real secp256k1 &mdash; only the field is
       tiny instead of 256-bit, so it is possible to enumerate every valid point.
     </p>
-    <div id="curve-points-list" class="mono small"></div>
+    <div id="curve-points-list" class="mono small data-block"></div>
   </section>
 
   <section id="keygen" class="card">
-    <h2>2. Key generation</h2>
+    <h2><span class="num">02</span>Key generation</h2>
 
     <div class="controls">
       <label>
@@ -43,14 +57,14 @@
     </div>
 
     <div class="result-line">
-      <strong>TOY PUBLIC KEY:</strong> <span id="publicKeyOut" class="mono">&mdash;</span>
+      <span class="result-tag">toy public key</span> <span id="publicKeyOut" class="mono">&mdash;</span>
     </div>
 
-    <div id="stepLog" class="mono small steplog"></div>
+    <div id="stepLog" class="mono small steplog data-block"></div>
   </section>
 
   <section id="viz" class="card">
-    <h2>3. Visual walk through kG (guru level)</h2>
+    <h2><span class="num">03</span>Visual walk through kG <span class="guru-tag">guru level</span></h2>
     <p class="hint">
       Each arrow is one addition: point<sub>i</sub> + G &rarr; point<sub>i+1</sub>. There is no real geometric
       line here &mdash; coordinates just wrap mod 17 &mdash; the arrows only mark the order in which points of
@@ -68,13 +82,13 @@
             <input type="range" id="speedRange" min="100" max="1500" value="600">
           </label>
         </div>
-        <div id="vizInfo" class="mono small"></div>
+        <div id="vizInfo" class="mono small data-block"></div>
       </div>
     </div>
   </section>
 
   <section id="stats" class="card">
-    <h2>4. Statistical exploration</h2>
+    <h2><span class="num">04</span>Statistical exploration</h2>
     <p>
       Repeats Q = kG over a range of k (and, optionally, over every valid base point) to look at the
       numeric properties of the outputs: coordinate distributions, bit frequencies, input/output
@@ -112,15 +126,15 @@
       </div>
     </div>
 
-    <div id="statsText" class="mono small"></div>
+    <div id="statsText" class="mono small data-block"></div>
 
-    <div id="periodDemo" class="mono small"></div>
+    <div id="periodDemo" class="mono small data-block"></div>
 
-    <div id="avalancheDemo" class="mono small"></div>
+    <div id="avalancheDemo" class="mono small data-block"></div>
   </section>
 
   <section id="discussion" class="card">
-    <h2>5. Discussion &mdash; one-way function vs. hash function</h2>
+    <h2><span class="num">05</span>Discussion &mdash; one-way function vs. hash function</h2>
     <p>
       Both k &rarr; Q = kG and a hash function H are easy forward, hard backward, and deterministic.
       That is where the similarity ends.
@@ -162,6 +176,8 @@
 <footer>
   <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK1</p>
 </footer>
+
+</div>
 
 <script src="script.js"></script>
 </body>

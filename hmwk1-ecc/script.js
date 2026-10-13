@@ -216,7 +216,7 @@ function drawCanvas() {
   const margin = 34;
   ctx.clearRect(0, 0, size, size);
 
-  ctx.strokeStyle = "#2a2e38";
+  ctx.strokeStyle = "#332b1f";
   ctx.lineWidth = 1;
   for (let i = 0; i < P; i++) {
     const [gx] = toCanvas(i, 0, size, margin);
@@ -225,7 +225,7 @@ function drawCanvas() {
     ctx.beginPath(); ctx.moveTo(margin, gy); ctx.lineTo(size - margin, gy); ctx.stroke();
   }
 
-  ctx.fillStyle = "#454c5c";
+  ctx.fillStyle = "#5c5240";
   curvePoints.forEach(([x, y]) => {
     const [cx, cy] = toCanvas(x, y, size, margin);
     ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
@@ -234,15 +234,15 @@ function drawCanvas() {
   const G = vizSteps[1] || readPoint(els.gSelect);
   if (G) {
     const [gx, gy] = toCanvas(G[0], G[1], size, margin);
-    ctx.fillStyle = "#f6a25c";
+    ctx.fillStyle = "#d7a53e";
     ctx.beginPath(); ctx.arc(gx, gy, 6, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#f6a25c";
-    ctx.font = "11px monospace";
+    ctx.fillStyle = "#d7a53e";
+    ctx.font = "11px 'JetBrains Mono', monospace";
     ctx.fillText("G", gx + 8, gy - 8);
   }
 
   // path so far: O -> 1G -> 2G -> ... -> vizIndex G
-  ctx.strokeStyle = "#5fc9f8";
+  ctx.strokeStyle = "#5ba39a";
   ctx.lineWidth = 1.4;
   for (let i = 1; i <= vizIndex; i++) {
     const prev = vizSteps[i - 1];
@@ -256,15 +256,15 @@ function drawCanvas() {
   const current = vizSteps[vizIndex];
   if (current !== null) {
     const [cx, cy] = toCanvas(current[0], current[1], size, margin);
-    ctx.strokeStyle = "#6fd38f";
+    ctx.strokeStyle = "#8aa66b";
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = "#6fd38f";
-    ctx.font = "11px monospace";
+    ctx.fillStyle = "#8aa66b";
+    ctx.font = "11px 'JetBrains Mono', monospace";
     ctx.fillText(`${vizIndex}G`, cx + 10, cy + 4);
   } else if (vizIndex > 0) {
-    ctx.fillStyle = "#6fd38f";
-    ctx.font = "13px monospace";
+    ctx.fillStyle = "#8aa66b";
+    ctx.font = "13px 'JetBrains Mono', monospace";
     ctx.fillText("O (point at infinity)", margin, margin - 12);
   }
 }
@@ -328,8 +328,8 @@ function drawBarChart(canvas, values, labels, color) {
     const barH = (values[i] / max) * (h - padBottom - 8);
     ctx.fillStyle = color;
     ctx.fillRect(i * barW + 2, h - padBottom - barH, barW - 4, barH);
-    ctx.fillStyle = "#8b92a3";
-    ctx.font = "9px monospace";
+    ctx.fillStyle = "#a39780";
+    ctx.font = "9px 'JetBrains Mono', monospace";
     ctx.textAlign = "center";
     ctx.fillText(labels[i], i * barW + barW / 2, h - 5);
   }
@@ -375,13 +375,13 @@ function runStats() {
     toBits(Q[0], 5).forEach((b, i) => { bitCount[i] += b; });
   });
 
-  drawBarChart(els.histX, histX, [...Array(P).keys()].map(String), "#5fc9f8");
-  drawBarChart(els.histY, histY, [...Array(P).keys()].map(String), "#f6a25c");
+  drawBarChart(els.histX, histX, [...Array(P).keys()].map(String), "#5ba39a");
+  drawBarChart(els.histY, histY, [...Array(P).keys()].map(String), "#d7a53e");
   drawBarChart(
     els.histBits,
     bitCount.map((c) => (affine.length ? c / affine.length : 0)),
     bitCount.map((_, i) => `b${i}`),
-    "#6fd38f"
+    "#8aa66b"
   );
 
   const distinctX = new Set(affine.map((s) => s.Q[0])).size;
