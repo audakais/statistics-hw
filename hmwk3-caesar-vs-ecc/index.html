@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caesar vs. Toy ECC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
+<header>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW3 · CIPHERS</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+  </div>
+  <h1>Caesar cipher vs. a toy ECC scheme</h1>
+  <p class="subtitle">
+    The same short message encrypted twice: once with EC-ElGamal on secp256k1 with a deliberately small
+    private key, once with the Caesar cipher. Then both get attacked: the Caesar cipher with letter
+    statistics, the ECC scheme by searching its small key space.
+  </p>
+</header>
+
+<main>
+
+  <!-- ============================================================ 01 -->
+  <section class="card" id="ecc">
+    <h2><span class="num">01</span>Toy ECC scheme: encrypt and decrypt</h2>
+
+    <p>
+      In HMWK1 the scalar multiplication Q = kG was done on y&sup2; = x&sup3; + 7 over a field of 17
+      elements, so every point could be drawn. Here the same functions (<code>pointAdd</code>,
+      double-and-add) run on the real secp256k1 parameters: p and the group order n are 256-bit numbers and
+      G is the standard generator. The only toy element is the private key, which is drawn from
+      [1, 2<sup>b</sup>] with b around 20 instead of from [1, n&minus;1]. That keeps the attack in section 06
+      fast enough to run inside this page.
+    </p>
+
+    <p>A public key on its own does not encrypt anything, so on top of it I used EC-ElGamal:</p>
+
+    <ol>
+      <li>
+        <strong>Public parameters.</strong> The curve y&sup2; = x&sup3; + 7 mod p, the generator G and its
+        order n. Everyone knows these and they are the same for every user.
+      </li>
+      <li>
+        <strong>Key generation (receiver).</strong> Choose the private key k at random in [1, 2<sup>b</sup>]
+        and publish Q = kG. Computing Q from k takes about b doublings; going back from Q to k is the
+        discrete logarithm problem.
+      </li>
+      <li>
+        <strong>Encoding.</strong> The message is turned into UTF-8 bytes, and each byte v becomes the point
+        M = (v + 1)G. The +1 is there because v = 0 would otherwise map to the point at infinity. The
+        receiver decodes by looking M up in a table of the 256 possible points. This is a discrete log too, but
+        only over 256 values, so it is cheap.
+      </li>
+      <li>
+        <strong>Encryption (sender, uses only Q).</strong> For every byte, pick a fresh random r in
+        [1, n&minus;1] and send the pair C1 = rG, C2 = M + rQ. The point rQ is a one-time mask that hides
+        M, and C1 carries just enough information for the receiver to rebuild that mask. r is thrown away
+        right after.
+      </li>
+      <li>
+        <strong>Decryption (receiver, uses k).</strong> kC1 = k(rG) = r(kG) = rQ, so
+        C2 &minus; kC1 = M. Look M up in the table to get the byte back.
+      </li>
+    </ol>
+
+    <p>
+      <strong>Role of the keys.</strong> The scheme is asymmetric. Q is enough to encrypt but useless
+      for decrypting, so it can be published. k is the only thing that removes the mask, and the sender never
+      needs it. The per-block r is a third, short-lived secret: anyone who learns r for a block can compute
+      rQ and read that block, which is why it must be fresh and random every time (section 07 shows what
+      happens if it is not).
+    </p>
+
+    <div class="controls">
+      <label class="wide">
+        Message
+        <textarea id="msgInput">Meet me at the old library at seven and bring the blue notebook.</textarea>
+      </label>
+      <label>
+        key bits b
+        <input type="number" id="keyBits" value="20" min="4" max="40" step="1">
+      </label>
+      <button id="keygenBtn">New key pair</button>
+      <button id="encryptBtn">Encrypt + decrypt</button>
+    </div>
+
+    <div id="keyOut" class="mono small data-block"></div>
+    <h3>ciphertext (first blocks, compressed SEC points)</h3>
+    <div id="eccCipherOut" class="mono small data-block scroll"></div>
+    <div id="eccDecOut" class="mono small data-block good"></div>
+  </section>
+
+  <!-- ============================================================ 02 -->
+  <section class="card" id="caesar">
+    <h2><span class="num">02</span>Caesar cipher on the same message</h2>
+    <p>
+      Number the letters A = 0, &hellip;, Z = 25. With key s &isin; {0, &hellip;, 25}:
+    </p>
+    <div class="formula">encryption   y = (x + s) mod 26
+decryption   x = (y &minus; s) mod 26</div>
+    <p>
+      Upper and lower case are shifted separately and everything that is not a letter (spaces, digits,
+      punctuation) is copied unchanged, which is the usual textbook convention. There is a single key and
+      both sides need it, so this is a symmetric cipher: whoever can encrypt can also decrypt.
+    </p>
+    <div class="controls">
+      <label>
+        shift s
+        <input type="number" id="caesarKey" value="7" min="0" max="25" step="1">
+      </label>
+      <button id="caesarBtn">Encrypt + decrypt</button>
+    </div>
+    <div id="caesarOut" class="mono small data-block"></div>
+  </section>
+
+  <!-- ============================================================ 03 -->
+  <section class="card" id="compare">
+    <h2><span class="num">03</span>Similarities and differences</h2>
+
+    <p>
+      Seen from far enough away, both schemes do the same thing: they add a secret value to the plaintext
+      inside a group and subtract it again to decrypt. Caesar adds s in the integers mod 26; EC-ElGamal adds the
+      point rQ in the group of curve points. The important difference is how often that value changes.
+      Caesar adds the <em>same</em> s to every letter. EC-ElGamal adds a <em>new</em> rQ to every byte, and
+      almost every difference in the table below follows from that.
+    </p>
+
+    <div class="table-wrap">
+    <table class="defs">
+      <thead><tr><th></th><th>Caesar</th><th>toy EC-ElGamal</th></tr></thead>
+      <tbody>
+        <tr><td>key type</td><td>symmetric, one shared key s</td><td>asymmetric: private k, public Q = kG, plus a fresh r per block</td></tr>
+        <tr><td>encryption</td><td>y = x + s mod 26, letter by letter</td><td>(C1, C2) = (rG, M + rQ), byte by byte</td></tr>
+        <tr><td>decryption</td><td>x = y &minus; s mod 26, same key</td><td>M = C2 &minus; kC1, needs k, then table lookup</td></tr>
+        <tr><td>deterministic?</td><td>yes: same letter, same output</td><td>no: same byte gives a different (C1, C2) each time</td></tr>
+        <tr><td>key space</td><td>26 keys (25 useful)</td><td>2<sup>b</sup> in the toy version, about 2<sup>256</sup> for a real key</td></tr>
+        <tr><td>ciphertext size</td><td>same length as the plaintext</td><td>two curve points per byte, 66 bytes compressed (66&times; expansion)</td></tr>
+        <tr><td>letter statistics</td><td>kept, only rotated by s</td><td>hidden, see the numbers below</td></tr>
+        <tr><td>cost</td><td>one addition per letter</td><td>two scalar multiplications per byte (hundreds of 256-bit point operations)</td></tr>
+        <tr><td>security rests on</td><td>nothing (the key can be guessed)</td><td>hardness of the discrete log, and here only on b</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>
+      <strong>Statistical properties.</strong> A Caesar ciphertext has exactly the same letter histogram as
+      its plaintext, only moved s positions to the right. Measures that do not care about which letter is
+      which, like the index of coincidence, do not change at all. With EC-ElGamal the
+      repeated letters of the message turn into unrelated points, so counting ciphertext blocks reveals
+      nothing about the plaintext distribution. The one thing it does reveal is the length: one block per
+      byte. The numbers below are computed from the message in section 01.
+    </p>
+
+    <div class="two-col">
+      <div>
+        <h3>letter counts: plaintext vs. Caesar ciphertext</h3>
+        <canvas id="cmpHist" width="400" height="190"></canvas>
+        <div class="legend"><span style="--c: var(--verdigris)">plaintext</span><span style="--c: var(--brass)">Caesar ciphertext</span></div>
+      </div>
+      <div id="cmpStats" class="mono small data-block"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ 04 -->
+  <section class="card" id="cryptanalysis">
+    <h2><span class="num">04</span>Statistical cryptanalysis of the Caesar cipher</h2>
+
+    <p>
+      <strong>Corpus.</strong> The reference statistics come from the full text of Jane Austen's
+      <em>Pride and Prejudice</em> (Project Gutenberg #1342, licence header and footer removed). The script
+      <code>tools/build-corpus.js</code> counts single letters, letter pairs and letter triples (case ignored,
+      non-letters dropped) and the 1000 most common words. The test messages are taken from a different
+      book, Dickens' <em>A Tale of Two Cities</em> (#98), so the method is never tested on the same text it
+      learned from.
+    </p>
+
+    <h3>reference letter distribution (training corpus)</h3>
+    <canvas id="refHist" width="820" height="170"></canvas>
+    <div id="refInfo" class="mono small data-block"></div>
+
+    <p><strong>Algorithm.</strong> There are only 26 keys, so they can all be tried. The real question is how
+      to recognise the right decryption automatically. I compared four rules:</p>
+
+    <ol>
+      <li>
+        <strong>Most frequent letter.</strong> No search at all: assume the most common ciphertext letter is
+        E (the most common corpus letter), so s = (top letter &minus; E) mod 26. This is frequency analysis in
+        its crudest form.
+      </li>
+      <li>
+        <strong>Chi-squared.</strong> For each candidate s, decrypt, count the letters O<sub>i</sub> and
+        compare them with the counts expected from the corpus, E<sub>i</sub> = N&middot;p<sub>i</sub>:
+        <div class="formula">&chi;&sup2;(s) = &Sigma;<sub>i</sub> (O<sub>i</sub> &minus; E<sub>i</sub>)&sup2; / E<sub>i</sub>      key = argmin &chi;&sup2;(s)</div>
+        This uses the whole histogram instead of only its maximum.
+      </li>
+      <li>
+        <strong>Dictionary words.</strong> Plain exhaustive key search: decrypt with each s and count how many
+        words belong to the 1000 most frequent corpus words. Keep the s with the most hits.
+      </li>
+      <li>
+        <strong>Trigram scoring.</strong> For each s, add up the log-probabilities of every three-letter
+        window of the decrypted letter stream, using the corpus trigram counts with add-one smoothing
+        (otherwise a single unseen trigram would give log 0):
+        <div class="formula">score(s) = &Sigma;<sub>j</sub> log P(x<sub>j</sub> x<sub>j+1</sub> x<sub>j+2</sub>)      key = argmax score(s)</div>
+        This looks at the order of the letters, not just how many of each there are.
+      </li>
+    </ol>
+    <p>
+      All of them cost about 26 &times; (text length) operations, which is nothing. The only real difference
+      between them is how much information about English each one uses.
+    </p>
+
+    <h3>try it on any ciphertext</h3>
+    <div class="controls">
+      <label class="wide">
+        ciphertext
+        <textarea id="anaInput"></textarea>
+      </label>
+      <label>
+        examples
+        <select id="anaPreset"></select>
+      </label>
+      <button id="anaBtn">Recover key</button>
+    </div>
+    <div class="table-wrap"><div id="anaOut"></div></div>
+  </section>
+
+  <!-- ============================================================ 05 -->
+  <section class="card" id="experiment">
+    <h2><span class="num">05</span>Effectiveness vs. ciphertext length</h2>
+
+    <p>
+      For each length L (counted in letters), the experiment draws 1000 random passages from <em>A Tale of
+      Two Cities</em> that start at the beginning of a word, encrypts each one with a random key from 1 to 25,
+      and checks whether each method gets that key back. The random generator is seeded (seed 2024), so the
+      table is the same every time the page is loaded and matches <code>node tools/experiments.js</code>. The
+      second option removes spaces and punctuation before encrypting, which is how classical ciphertexts were
+      usually written down.
+    </p>
+
+    <div class="controls">
+      <label>
+        trials per length
+        <input type="number" id="expTrials" value="1000" min="50" max="5000" step="50">
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" id="expStrip">
+        letters only (strip spaces/punctuation)
+      </label>
+      <button id="expBtn">Run experiment</button>
+    </div>
+    <progress id="expProgress" value="0" max="1"></progress>
+
+    <div class="table-wrap"><div id="expTable"></div></div>
+    <canvas id="expChart" width="820" height="260"></canvas>
+    <div class="legend" id="expLegend"></div>
+
+    <p><strong>What the results show</strong> (the numbers quoted here are from the default run, with spaces):</p>
+    <ul>
+      <li>
+        <strong>Most frequent letter</strong> is clearly the weakest. It is right only 20.4% of the time at 10
+        letters, 61.5% at 100 and 93.1% at 500. E is the most common letter (12.9% in the corpus), but T is
+        at 8.7% and A, O, I, N are all around 7%, so in a short passage E is often not on top. One unlucky
+        count is enough to get a wrong key.
+      </li>
+      <li>
+        <strong>Chi-squared</strong> uses all 26 frequencies at once, so the error in one count is compensated by
+        the others. It reaches 78.9% at 10 letters, 94.6% at 20 and is always right from 50 letters on.
+      </li>
+      <li>
+        <strong>Dictionary search</strong> works better than chi-squared on short texts (86.3% at 10 letters)
+        because a word like "the" or "and" is a very strong signal. But it depends completely on word
+        boundaries: with spaces removed it drops to 0.2% at 10 letters and 0% from 15 on.
+      </li>
+      <li>
+        <strong>Trigram scoring</strong> is the best at every length: 82.3% at 5 letters, 98.5% at 10, and 100%
+        from 20 letters on. It does not need spaces, so its results are the same in both modes. The
+        order of the letters carries much more information than their counts: English allows "THE" but
+        almost never "QZK".
+      </li>
+    </ul>
+
+    <p><strong>Limitations.</strong></p>
+    <ul>
+      <li>
+        <strong>Short messages.</strong> Below 10&ndash;15 letters there is simply not enough text for the
+        statistics to point to one key. For 3 letters even the trigram method is right only 61.8% of the time.
+        But even when the top guess is wrong, the correct key is usually near the top of the ranking, and with
+        only 26 candidates a person can just read them.
+      </li>
+      <li>
+        <strong>Texts that do not look like the corpus.</strong> The examples menu in section 04 contains
+        a few. "Fuzzy jazz buzz" (letters that are rare in English) fools every method. "A lazy fox
+        jumps quickly" is recovered only by the trigram method. A string with no repeated or common letters,
+        like "XYZ QRS KJV", gives no usable signal to any of them.
+      </li>
+      <li>
+        <strong>The wrong language.</strong> The model is English-only. In the examples, an Italian sentence is
+        still broken by chi-squared and trigrams, because Italian letter frequencies are close enough and the
+        attack only has to pick the best of 26 shifts, not match the distribution exactly. The dictionary
+        method fails there, since Italian words are not in the English list.
+      </li>
+      <li>
+        <strong>Probabilistic output.</strong> The attack gives the <em>most likely</em> key, not a proof. With
+        a long text this hardly matters, but for a short one there is no way to be sure from statistics alone.
+        This is different from the ECC attack in section 06, where a candidate key can be checked exactly.
+      </li>
+    </ul>
+
+    <p>
+      <strong>Comparing the approaches.</strong> Exhaustive key search and frequency analysis are not
+      really alternatives for Caesar. With 26 keys, trying all of them is always possible, and the statistics
+      are only the rule that picks the right one. The baseline "most frequent letter = E" is the only method
+      that avoids the search, and it is also the worst. Among the search-based rules the ranking is clear:
+      unigram statistics (&chi;&sup2;) &lt; whole words &lt; trigrams, with the dictionary dropping out
+      completely when there are no spaces. More context in the score means fewer letters are needed.
+    </p>
+  </section>
+
+  <!-- ============================================================ 06 -->
+  <section class="card" id="attack">
+    <h2><span class="num">06</span>Attacking the toy ECC scheme</h2>
+
+    <p>
+      The attacker knows the curve, G, the public key Q, the ciphertext, and that k &le; 2<sup>b</sup>. The
+      ciphertext statistics are useless here (section 03), but the key space is small, and that is
+      enough. Three ways to use it:
+    </p>
+    <ol>
+      <li>
+        <strong>Exhaustive search on the public key.</strong> Compute G, 2G, 3G, &hellip; by adding G each time
+        and stop when the point equals Q. That is at most 2<sup>b</sup> additions. To make each step cheaper I
+        keep the running point in Jacobian coordinates (X, Y, Z) &harr; (X/Z&sup2;, Y/Z&sup3;). Adding G then
+        needs no modular inverse, and comparing with Q costs only two multiplications (X = Q<sub>x</sub>Z&sup2;,
+        Y = Q<sub>y</sub>Z&sup3;). The benchmark below shows how much faster this is than the affine formula.
+      </li>
+      <li>
+        <strong>Exhaustive search from the ciphertext only.</strong> Without using Q: for each candidate k,
+        compute C2 &minus; kC1 for the first block and check whether it is one of the 256 message points. This
+        is the ECC version of the Caesar dictionary test, but the test is almost perfect: for a wrong k the
+        result is essentially a random point, and the chance that it lands in a 256-element table is about
+        256/n &asymp; 2<sup>&minus;248</sup>. This version needs the affine x coordinate at every step for the
+        lookup, so it is slower.
+      </li>
+      <li>
+        <strong>Baby-step giant-step.</strong> Write k = i&middot;m + j with m = &lceil;&radic;2<sup>b</sup>&rceil;.
+        Store the x coordinates of jG for j = 0..m&minus;1 (baby steps), then compute Q &minus; i&middot;mG for
+        i = 0, 1, &hellip; (giant steps) until one of them is in the table. That takes about
+        2&middot;2<sup>b/2</sup> additions and 2<sup>b/2</sup> stored points, so roughly the square root of the
+        exhaustive search.
+      </li>
+    </ol>
+
+    <div class="controls">
+      <button id="atkBruteBtn">1 &middot; search on Q</button>
+      <button id="atkCipherBtn">2 &middot; search from ciphertext</button>
+      <button id="atkBsgsBtn">3 &middot; baby-step giant-step</button>
+      <button id="atkStopBtn" disabled>Stop</button>
+    </div>
+    <progress id="atkProgress" value="0" max="1"></progress>
+    <div id="atkOut" class="mono small data-block"></div>
+
+    <h3>measured speed and extrapolation</h3>
+    <p class="hint">
+      The extrapolation multiplies the operation counts above by the speed this browser actually reaches,
+      plus a much faster hypothetical attacker doing 10<sup>12</sup> point additions per second.
+    </p>
+    <div class="controls"><button id="benchBtn">Re-measure</button></div>
+    <div class="table-wrap"><div id="extrapTable"></div></div>
+  </section>
+
+  <!-- ============================================================ 07 -->
+  <section class="card" id="discussion">
+    <h2><span class="num">07</span>Discussion</h2>
+
+    <h3 style="text-align:left">the two attacks compared</h3>
+    <ul>
+      <li>
+        <strong>What is exploited.</strong> The Caesar attack exploits redundancy in the
+        <em>plaintext</em>. English is far from random, and the cipher passes that structure through to the
+        ciphertext. The ECC attack does not use the plaintext at all. It exploits the fact that the
+        <em>key</em> comes from a small set. The ciphertext gives away no statistics because of the fresh r.
+      </li>
+      <li>
+        <strong>What the attacker needs.</strong> The Caesar attack needs ciphertext, and enough of it
+        (section 05). Attack 1 on ECC needs only the public key, so it works before any message has even been
+        sent, and once k is found every past and future message can be read. The length of the message does not
+        matter.
+      </li>
+      <li>
+        <strong>How sure the result is.</strong> Statistics give the most probable key and can be wrong on short
+        or unusual texts. In the ECC case a candidate is checked exactly (kG = Q, or C2 &minus; kC1 lands in the
+        table), so when the search finds a key it is the right one.
+      </li>
+      <li>
+        <strong>Cost.</strong> Caesar costs 26 trials no matter what, so the key space never protected it. The
+        ECC attack grows with the key space: 2<sup>b</sup> for the plain search, about 2<sup>b/2</sup> for BSGS.
+        Every extra key bit doubles the plain search time.
+      </li>
+    </ul>
+
+    <h3 style="text-align:left">why this does not work against real ECC</h3>
+    <p>
+      A properly generated secp256k1 key is uniform in [1, n&minus;1] with n &asymp; 2<sup>256</sup>. Plain
+      search would need about 2<sup>256</sup> additions. The best known algorithms for the discrete log on a
+      well-chosen curve are the generic ones (BSGS, Pollard's rho), and they need on the order of
+      &radic;n &asymp; 2<sup>128</sup> operations. BSGS would also have to store about 2<sup>128</sup> points. The
+      extra structure of secp256k1 (the negation map and its efficient endomorphism) only speeds up rho by a
+      small constant factor, at most &radic;6. It does not change the exponent. The last rows of the
+      table in section 06 show what 2<sup>128</sup> means at realistic speeds. This is why a 256-bit curve is
+      said to give "128-bit security". The attacks in section 06 are exactly the ones that would be used on a
+      real key, and they work here only because b is tiny. Everything that made them easy came from the toy
+      restriction, not from the curve.
+    </p>
+
+    <h3 style="text-align:left">alternative attacks</h3>
+    <ul>
+      <li>
+        <strong>Pollard's kangaroo (lambda) method</strong> is designed for a key known to lie in an interval
+        of width w. It needs about 2&radic;w operations like BSGS, but almost no memory, and it parallelises well.
+        For a bounded key it would be the practical choice once the BSGS table no longer fits in memory: for
+        b = 80 the table would hold 2<sup>40</sup> points, which at 32 bytes per x coordinate is about 35 TB.
+      </li>
+      <li>
+        <strong>Pollard's rho</strong> is the memoryless generic method for the full group. It is the reason
+        real keys are 256 bits and not 128.
+      </li>
+      <li>
+        <strong>Precomputation and multiple users.</strong> One BSGS table of jG serves every public key ever
+        made with the same small bound, so attacking 1000 users costs little more than attacking one. With
+        2<sup>b</sup> possible keys and b = 20, two users get the same key with probability 50% once there are
+        about 1.18&middot;&radic;2<sup>20</sup> &asymp; 1200 users (birthday bound), and this is visible from
+        the public keys alone.
+      </li>
+    </ul>
+
+    <h3 style="text-align:left">which weaknesses come from the key space, and which from the design</h3>
+    <p>
+      Everything above (exhaustive search, BSGS, kangaroo, shared tables, key collisions) comes from the
+      restricted key space. It goes away with a full-size k. The way I built the toy scheme also has
+      problems that would remain even with a 256-bit key. Two of them are demonstrated live:
+    </p>
+
+    <div class="controls">
+      <button id="reuseBtn">Reuse r for every byte</button>
+      <button id="mallBtn">Shift ciphertext by +1 (no key)</button>
+    </div>
+    <div id="designOut" class="mono small data-block"></div>
+
+    <ul>
+      <li>
+        <strong>Reusing r.</strong> If the same r is used for all bytes, C1 is identical in every block and
+        C2<sub>i</sub> = M<sub>i</sub> + S with the same mask S = rQ everywhere. Equal bytes then give equal C2,
+        so the scheme becomes a substitution cipher on bytes, with a fixed additive mask just like Caesar. The
+        attack from section 04 applies again: guess that the most frequent C2 is a space, compute
+        S = C2 &minus; 33G, and subtract S from everything. The whole message comes out without k ever being
+        found, whatever its size.
+      </li>
+      <li>
+        <strong>Malleability.</strong> Adding G to every C2 produces a valid ciphertext of the message with
+        every byte increased by 1, a Caesar shift on bytes done by someone who does not know any key. There is
+        no integrity check that could detect it.
+      </li>
+      <li>
+        <strong>Independent blocks.</strong> Every byte is a separate ciphertext, so blocks can be dropped,
+        repeated or reordered without detection, and the exact message length is visible.
+      </li>
+      <li>
+        <strong>Bad randomness for r.</strong> If r came from a small or predictable range, the attacker could
+        search for r from C1 = rG with the same methods as in section 06 and get M = C2 &minus; rQ, again without
+        k. A small k and a small r are the same mistake.
+      </li>
+      <li>
+        <strong>Efficiency and implementation.</strong> 66 bytes of ciphertext per byte of message. The code
+        also branches on the key bits in double-and-add and uses variable-time BigInt arithmetic, which is
+        fine for a toy but would leak timing information in a real implementation. Real systems use ECC only to
+        agree on a key (ECDH, as in ECIES) and then encrypt the message with a symmetric authenticated cipher.
+        That fixes the expansion, the malleability and the block structure together.
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK3</p>
+</footer>
+
+</div>
+
+<script src="corpus-stats.js"></script>
+<script src="test-text.js"></script>
+<script src="ecc.js"></script>
+<script src="caesar.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
