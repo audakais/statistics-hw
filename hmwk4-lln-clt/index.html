@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Penetration Score Limits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
+<header>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW4 · LLN &amp; CLT</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+  </div>
+  <h1>n systems, m attackers: the penetration score as n grows</h1>
+  <p class="subtitle">
+    A sum of i.i.d. scores, simulated step by step for many attackers, and looked at with three different
+    scalings: S<sub>n</sub>, S<sub>n</sub>/n and S<sub>n</sub>/&radic;n. One of them spreads out, one
+    concentrates on a single number (law of large numbers), and one keeps a fixed shape that turns into a
+    normal curve (central limit theorem).
+  </p>
+</header>
+
+<main>
+
+  <!-- ============================================================ 01 -->
+  <section class="card" id="model">
+    <h2><span class="num">01</span>The model</h2>
+
+    <p>
+      There are n systems and m attackers. Each attacker goes through the systems one after the other, and
+      step i of an attacker's trajectory is the score X<sub>i</sub> obtained on system i. All the
+      X<sub>i</sub> are independent and identically distributed: within one attacker (system i does not
+      affect system i+1) and across attackers (they work independently of each other). So the m attackers are
+      m independent copies of the same random trajectory, and their final scores are a sample of size m from
+      the distribution of the score.
+    </p>
+
+    <ul>
+      <li>
+        <strong>Bernoulli model.</strong> X<sub>i</sub> = 1 if the attacker penetrates system i, 0 otherwise,
+        with P(X<sub>i</sub> = 1) = p. Then S<sub>n</sub> is the number of systems the attacker got into, and
+        S<sub>n</sub>/n is the fraction of them, the attacker's success rate.
+      </li>
+      <li>
+        <strong>Rademacher model.</strong> X<sub>i</sub> = +1 (the attacker gains ground) or &minus;1 (the
+        defence wins and the attacker loses ground), each with probability 1/2. S<sub>n</sub> is the net score
+        after n systems, i.e. a simple symmetric random walk. It describes a fair contest where
+        neither side has an edge, so the mean is exactly zero.
+      </li>
+    </ul>
+
+    <p>
+      With &mu; = E[X<sub>i</sub>] and &sigma;&sup2; = Var(X<sub>i</sub>), independence gives
+      E[S<sub>n</sub>] = n&mu; and Var(S<sub>n</sub>) = n&sigma;&sup2;. Dividing by a constant c divides the
+      variance by c&sup2;, so the three quantities in the assignment behave like this:
+    </p>
+
+    <div class="table-wrap">
+    <table class="defs num-table">
+      <thead>
+        <tr><th></th><th>mean</th><th>variance</th><th>Bernoulli (&mu; = p, &sigma;&sup2; = p(1&minus;p))</th><th>Rademacher (&mu; = 0, &sigma;&sup2; = 1)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>S<sub>n</sub></td><td>n&mu;</td><td>n&sigma;&sup2;</td><td>mean np, variance np(1&minus;p): both grow</td><td>mean 0, variance n: grows</td></tr>
+        <tr><td>S<sub>n</sub>/n</td><td>&mu;</td><td>&sigma;&sup2;/n</td><td>mean p, variance &rarr; 0</td><td>mean 0, variance 1/n &rarr; 0</td></tr>
+        <tr><td>S<sub>n</sub>/&radic;n</td><td>&radic;n&middot;&mu;</td><td>&sigma;&sup2;</td><td>mean p&radic;n &rarr; &infin;, variance p(1&minus;p)</td><td>mean 0, variance 1 for every n</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>
+      <strong>What the theorems say.</strong> The weak law of large numbers says that
+      S<sub>n</sub>/n &rarr; &mu; in probability: for every &epsilon; &gt; 0,
+      P(|S<sub>n</sub>/n &minus; &mu;| &gt; &epsilon;) &rarr; 0. With a finite variance this follows directly
+      from Chebyshev's inequality:
+    </p>
+    <div class="formula">P(|S<sub>n</sub>/n &minus; &mu;| &gt; &epsilon;)  &le;  Var(S<sub>n</sub>/n) / &epsilon;&sup2;  =  &sigma;&sup2; / (n&epsilon;&sup2;)  &rarr;  0</div>
+    <p>
+      In the Bernoulli case that is exactly the statement on the board: the probability mass of the average
+      score concentrates on p = P(X<sub>i</sub> = 1) as n &rarr; &infin;. The central limit theorem says that
+      (S<sub>n</sub> &minus; n&mu;)/(&sigma;&radic;n) converges in distribution to N(0, 1). In the Rademacher
+      case &mu; = 0 and &sigma; = 1, so this is S<sub>n</sub>/&radic;n itself. In the Bernoulli case
+      S<sub>n</sub>/&radic;n must first be centred and rescaled, because its mean p&radic;n runs off to infinity.
+    </p>
+
+    <h3 style="text-align:left">simulation settings</h3>
+    <p>
+      Every attacker is simulated step by step up to n = 10&nbsp;000 systems. The value of S<sub>n</sub> is
+      stored at n = 1, 2, 5, 10, 20, &hellip;, 10&nbsp;000, so all the values of n come from the same
+      trajectories, just like a real attacker's score evolves. The random generator is seeded (11 for
+      Bernoulli, 22 for Rademacher), so the default run is always the same, and
+      <code>node tools/experiments.js</code> prints the same numbers from the command line.
+    </p>
+    <div class="controls">
+      <label>
+        p = P(X = 1), Bernoulli
+        <input type="number" id="pInput" value="0.3" min="0.01" max="0.99" step="0.01">
+      </label>
+      <label>
+        m attackers
+        <select id="mInput">
+          <option value="200">200</option>
+          <option value="1000">1000</option>
+          <option value="2000" selected>2000</option>
+          <option value="5000">5000</option>
+          <option value="10000">10000</option>
+        </select>
+      </label>
+      <button id="runBtn">Run simulation</button>
+      <span id="runStatus" class="status"></span>
+    </div>
+    <p class="hint">
+      <strong>Choosing m.</strong> The attackers are the Monte Carlo sample, so m sets how precisely the
+      distributions can be seen, not how they behave. A probability q estimated from m attackers has standard
+      error &radic;(q(1&minus;q)/m), which is at most 0.011 for m = 2000. A sample variance is off by roughly
+      &radic;(2/m) &asymp; 3% in relative terms. The distance between an empirical CDF and the true one is about
+      0.87/&radic;m &asymp; 0.02 even when the model is exactly right. 200 attackers already show the trends;
+      2000 is enough to read the numbers below with two significant digits.
+    </p>
+  </section>
+
+  <!-- ============================================================ 02 -->
+  <section class="card" id="paths">
+    <h2><span class="num">02</span>Sample trajectories</h2>
+    <p>
+      The first 40 attackers, plotted as a function of the number k of systems visited so far. The shaded band
+      is mean &plusmn; 2 standard deviations from the formulas in section 01. Switching between the three
+      quantities shows the same paths with a different scaling.
+    </p>
+    <div class="controls">
+      <div class="seg" id="pathModel">
+        <button data-v="bernoulli" class="on">Bernoulli</button>
+        <button data-v="rademacher">Rademacher</button>
+      </div>
+      <div class="seg" id="pathQty">
+        <button data-v="S" class="on">S<sub>k</sub></button>
+        <button data-v="avg">S<sub>k</sub>/k</button>
+        <button data-v="norm">S<sub>k</sub>/&radic;k</button>
+      </div>
+      <div class="seg" id="pathRange">
+        <button data-v="100">k &le; 100</button>
+        <button data-v="1000">k &le; 1000</button>
+        <button data-v="10000" class="on">k &le; 10000</button>
+      </div>
+    </div>
+    <div class="chart" id="pathChart"></div>
+    <div class="legend" id="pathLegend"></div>
+    <ul>
+      <li>
+        <strong>S<sub>k</sub></strong>. In the Bernoulli model the paths climb along the line pk and fan out,
+        because the band has width proportional to &radic;k. In the Rademacher model they wander around 0 and
+        the fan opens up in both directions: a fair game does not keep a single attacker near zero.
+      </li>
+      <li>
+        <strong>S<sub>k</sub>/k</strong>. The same paths squeezed towards p (or 0). They jump around a lot for
+        the first few systems and then settle, since each new system changes the average by at most 1/k.
+        This is the law of large numbers for one trajectory at a time.
+      </li>
+      <li>
+        <strong>S<sub>k</sub>/&radic;k</strong>. For Rademacher the band stays at &plusmn;2 for every k. The
+        paths neither settle nor blow up, they keep moving inside a band of constant width. For Bernoulli the
+        whole bundle drifts up like p&radic;k, which is why it has to be centred before the CLT applies.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 03 -->
+  <section class="card" id="dists">
+    <h2><span class="num">03</span>Distributions across the m attackers</h2>
+    <p>
+      Histograms of the m final values for n = 10, 100, 1000 and 10&nbsp;000 systems. In the S<sub>n</sub>
+      row each panel has its own x axis (otherwise the n = 10 panel would be a single bar). In the other two
+      rows the x axis is the same across n, so the change in width is real. The line drawn over the histograms
+      is the normal density with the mean and variance of section 01.
+    </p>
+    <div class="controls">
+      <div class="seg" id="distModel">
+        <button data-v="bernoulli" class="on">Bernoulli</button>
+        <button data-v="rademacher">Rademacher</button>
+      </div>
+    </div>
+    <div class="chart-title">S<sub>n</sub> (total score)</div>
+    <div class="grid4" id="distRowS"></div>
+    <div class="chart-title">S<sub>n</sub>/n (average score)</div>
+    <div class="grid4" id="distRowAvg"></div>
+    <div class="chart-title">S<sub>n</sub>/&radic;n (normalised total score)</div>
+    <div class="grid4" id="distRowNorm"></div>
+    <div class="table-wrap"><div id="distTable"></div></div>
+    <p>
+      The table compares the sample means and variances with the formulas. The agreement is within the
+      Monte Carlo error discussed in section 01. One thing to keep in mind: the rows for different n come from
+      the same attackers, so their errors are correlated. If the sample happens to have slightly too much
+      spread at n = 1000, it usually also has it at n = 2000.
+    </p>
+  </section>
+
+  <!-- ============================================================ 04 -->
+  <section class="card" id="lln">
+    <h2><span class="num">04</span>Law of large numbers: convergence in probability of S<sub>n</sub>/n</h2>
+    <p>
+      For a fixed tolerance &epsilon;, the chart shows the share of attackers whose average score is more
+      than &epsilon; away from the mean, together with the exact probability (computed from the binomial
+      distribution, since S<sub>n</sub> is binomial in both models) and the Chebyshev bound
+      &sigma;&sup2;/(n&epsilon;&sup2;). Convergence in probability means exactly that the curve goes to zero
+      for every choice of &epsilon;.
+    </p>
+    <div class="controls">
+      <div class="seg" id="epsSel">
+        <button data-v="0.01">&epsilon; = 0.01</button>
+        <button data-v="0.05" class="on">&epsilon; = 0.05</button>
+        <button data-v="0.1">&epsilon; = 0.1</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div><div class="chart-title">Bernoulli</div><div class="chart" id="llnChartB"></div></div>
+      <div><div class="chart-title">Rademacher</div><div class="chart" id="llnChartR"></div></div>
+    </div>
+    <div class="legend" id="llnLegend"></div>
+    <div class="table-wrap"><div id="llnTable"></div></div>
+    <ul>
+      <li>
+        <strong>The simulation follows the exact curve.</strong> The differences are of the size expected
+        from m attackers. With the default settings (p = 0.3, &epsilon; = 0.05) the share of Bernoulli attackers
+        outside p &plusmn; 0.05 goes from 0.71 at n = 10 to 0.099 at n = 200, 0.0005 at n = 1000 (one attacker
+        out of 2000), and none from n = 2000 on.
+      </li>
+      <li>
+        <strong>Chebyshev is valid but loose.</strong> It is always above the true probability, but by a
+        large factor: at n = 1000 it gives 0.084 for Bernoulli, while the exact value is 0.0005. It only uses
+        the variance. The real tail decays exponentially in n, while the bound only decays like 1/n. For the
+        LLN that does not matter, since 1/n already goes to zero.
+      </li>
+      <li>
+        <strong>The curve is not monotone for small n.</strong> S<sub>n</sub>/n can only take the values
+        k/n (Bernoulli) or (2k &minus; n)/n (Rademacher). For Rademacher with an odd n the average can never
+        be 0, so for n = 1 and n = 5 every attacker is more than 0.05 away from 0 (probability 1). For n = 2
+        half of them land exactly on 0. This lattice effect disappears as the grid of possible values becomes
+        finer than &epsilon;.
+      </li>
+      <li>
+        <strong>The symmetric case converges more slowly.</strong> With the same &epsilon;, Rademacher needs a
+        larger n than Bernoulli with p = 0.3, because its variance is 1 instead of 0.21. The probability
+        depends on n&epsilon;&sup2;/&sigma;&sup2;, so a variance about 5 times larger needs about 5 times more
+        systems for the same precision.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 05 -->
+  <section class="card" id="variance">
+    <h2><span class="num">05</span>Variance under the three normalisations</h2>
+    <p>
+      Sample variance across the m attackers as a function of n, on log&ndash;log axes, where a power law
+      n<sup>a</sup> becomes a straight line of slope a. The theory says a = +1 for S<sub>n</sub>, a = &minus;1
+      for S<sub>n</sub>/n and a = 0 for S<sub>n</sub>/&radic;n. Dashed lines are the exact formulas, dots are
+      the simulation, and the slopes in the legend are least-squares fits on the simulated points.
+    </p>
+    <div class="two-col">
+      <div><div class="chart-title">Bernoulli</div><div class="chart" id="varChartB"></div></div>
+      <div><div class="chart-title">Rademacher</div><div class="chart" id="varChartR"></div></div>
+    </div>
+    <div class="legend" id="varLegend"></div>
+    <div id="varSlopes" class="mono small data-block"></div>
+    <p>
+      &radic;n is the only scaling that keeps the variance fixed. Divide by less (S<sub>n</sub> itself)
+      and the spread grows without limit. Divide by more (S<sub>n</sub>/n) and it shrinks to zero, so the
+      distribution collapses onto a single point and there is no shape left to see. That is why the LLN is
+      a statement about S<sub>n</sub>/n (where the limit is a constant) and the CLT is a statement about
+      S<sub>n</sub>/&radic;n (where the limit is still random). The two are consistent: S<sub>n</sub>/n =
+      (S<sub>n</sub>/&radic;n)/&radic;n, a quantity of fixed size divided by something that goes to
+      infinity.
+    </p>
+  </section>
+
+  <!-- ============================================================ 06 -->
+  <section class="card" id="clt">
+    <h2><span class="num">06</span>Central limit theorem: S<sub>n</sub>/&radic;n &rarr; N(0, 1) in the Rademacher case</h2>
+    <p>
+      The histogram shows S<sub>n</sub>/&radic;n for the Rademacher attackers against the standard normal
+      density. The table measures the distance with the Kolmogorov&ndash;Smirnov statistic
+      D = sup<sub>z</sub> |F<sub>m</sub>(z) &minus; &Phi;(z)|, the largest vertical gap between the empirical
+      CDF of the attackers and the normal CDF. The same is done for the standardised Bernoulli score
+      (S<sub>n</sub> &minus; np)/&radic;(np(1&minus;p)).
+    </p>
+    <div class="controls">
+      <div class="seg" id="cltN">
+        <button data-v="1">n = 1</button>
+        <button data-v="5">n = 5</button>
+        <button data-v="20">n = 20</button>
+        <button data-v="100" class="on">n = 100</button>
+        <button data-v="1000">n = 1000</button>
+        <button data-v="10000">n = 10000</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div><div class="chart-title">Rademacher, S<sub>n</sub>/&radic;n</div><div class="chart" id="cltChartR"></div></div>
+      <div><div class="chart-title">Bernoulli, (S<sub>n</sub> &minus; np)/&radic;(np(1&minus;p))</div><div class="chart" id="cltChartB"></div></div>
+    </div>
+    <div class="table-wrap"><div id="cltTable"></div></div>
+    <ul>
+      <li>
+        <strong>From two spikes to a bell.</strong> For n = 1, S<sub>1</sub> is just &plusmn;1, two bars and
+        nothing normal about it. By n = 20 the outline already follows the bell curve, and from n = 100 on what is
+        left of the gap comes mostly from the lattice and from the finite m (next two points). The variance was 1 all along (section 05). What changes with n
+        is the shape.
+      </li>
+      <li>
+        <strong>D stops decreasing at about 0.02.</strong> This is not a failure of the CLT. With m = 2000
+        attackers even a sample drawn from an exact N(0, 1) would give D of about 0.87/&radic;2000 &asymp; 0.019,
+        so past n &asymp; 1000 the remaining distance is Monte Carlo noise. Increasing m lowers this floor.
+      </li>
+      <li>
+        <strong>S<sub>n</sub> lives on a lattice.</strong> S<sub>n</sub>/&radic;n takes values spaced
+        2/&radic;n apart, so the true CDF is a staircase and can never match &Phi; exactly. Each step has height
+        about 0.8/&radic;n, and for n = 10&nbsp;000 that is below 0.01. The CLT is about convergence of the CDFs
+        at every point, not about turning a discrete variable into a continuous one.
+      </li>
+      <li>
+        <strong>Bernoulli is skewed for small n.</strong> With p = 0.3 the standardised score has a longer
+        right tail (third moment (1&minus;2p)/&radic;(np(1&minus;p)) &gt; 0), so it starts further from the
+        normal than the symmetric Rademacher case at the same n. It catches up as n grows. The Rademacher
+        increments are symmetric, so this skewness term is zero for them.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 07 -->
+  <section class="card" id="interpretation">
+    <h2><span class="num">07</span>What it means for n systems and m attackers</h2>
+
+    <h3 style="text-align:left">effect of the number of systems n</h3>
+    <ul>
+      <li>
+        <strong>The total grows, and so does its uncertainty, but more slowly.</strong> An attacker's expected
+        number of penetrated systems is np and the typical deviation from it is &radic;(np(1&minus;p)). The
+        absolute uncertainty grows like &radic;n, while the relative one, &radic;((1&minus;p)/(np)), shrinks like
+        1/&radic;n. With p = 0.3 and 10&nbsp;000 systems, an attacker gets into about 3000 &plusmn; 46 of them.
+      </li>
+      <li>
+        <strong>The success rate becomes predictable.</strong> On a small network (n = 10) two attackers with the
+        same skill p can look very different, one getting into 1 system and another into 5. On a large one
+        their success rates are almost identical and equal to p. For a defender this is good news and bad
+        news: the fraction of a large fleet that will fall is easy to predict, but it does not get smaller as
+        the fleet grows. Only lowering p does that.
+      </li>
+      <li>
+        <strong>A fair contest still produces big individual swings.</strong> In the Rademacher model the
+        average score goes to 0, so in the long run neither side wins per system. But the net score of a
+        single attacker is typically of size &radic;n (E|S<sub>n</sub>| &asymp; &radic;(2n/&pi;), about 80 for
+        n = 10&nbsp;000). Some attackers end far ahead and some far behind, with no difference in skill.
+      </li>
+    </ul>
+
+    <h3 style="text-align:left">effect of the number of attackers m</h3>
+    <ul>
+      <li>
+        <strong>m does not change any single attacker's score.</strong> The distribution of S<sub>n</sub> for
+        one attacker is the same whether there are 10 attackers or 10&nbsp;000. What m changes is how well the
+        sample shows that distribution (section 01) and the quantities that combine attackers.
+      </li>
+      <li>
+        <strong>The aggregate score.</strong> The total over all attackers,
+        T = S<sub>n</sub><sup>(1)</sup> + &hellip; + S<sub>n</sub><sup>(m)</sup>, is a sum of nm i.i.d.
+        increments, so E[T] = nm&mu; and Var(T) = nm&sigma;&sup2;. Its average T/(nm) obeys the LLN with nm in
+        place of n. Adding attackers works just like adding systems.
+      </li>
+      <li>
+        <strong>The best attacker.</strong> The maximum over m attackers grows with m. The table below takes the
+        first m&prime; attackers of the simulation and reports the highest success rate among them. For small n
+        the best of many attackers looks much stronger than p, purely by luck. As n grows the maximum is pulled
+        down towards p too, because every attacker's average converges.
+      </li>
+      <li>
+        <strong>Systems hit by at least one attacker.</strong> A defender cares about which systems fall,
+        not who gets in. If the m attackers act independently on the same system, it survives with probability
+        (1&minus;p)<sup>m</sup>, so the share of compromised systems tends to 1 &minus; (1&minus;p)<sup>m</sup>
+        (again by the LLN, this time across systems). This grows quickly with m: with p = 0.3, two attackers
+        already compromise about half the network and ten compromise about 97%.
+      </li>
+    </ul>
+
+    <div class="two-col">
+      <div class="table-wrap"><div id="bestTable"></div></div>
+      <div class="table-wrap"><div id="hitTable"></div></div>
+    </div>
+
+    <h3 style="text-align:left">limits of the model</h3>
+    <p>
+      All of this relies on the i.i.d. assumption. Real systems differ (each has its own p<sub>i</sub>), real
+      attackers learn from one system to the next (the increments become dependent), and defenders react after
+      the first intrusions. With different but independent p<sub>i</sub> the LLN still holds in the form
+      S<sub>n</sub>/n &minus; mean(p<sub>i</sub>) &rarr; 0 and a version of the CLT (Lindeberg's) still applies as long as
+      the total variance p<sub>1</sub>(1&minus;p<sub>1</sub>) + &hellip; + p<sub>n</sub>(1&minus;p<sub>n</sub>) grows
+      to infinity, for example when the p<sub>i</sub> stay away from 0 and 1. With strong dependence, for example one stolen password that opens many
+      systems at once, the variance of S<sub>n</sub> can grow faster than n and the &radic;n picture no longer
+      holds.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK4</p>
+</footer>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="sim.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
