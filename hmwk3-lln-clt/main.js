@@ -1,6 +1,6 @@
 "use strict";
 
-// Page wiring for HMWK4: runs the simulation from sim.js and draws everything.
+// Page wiring for HMWK3: runs the simulation from sim.js and draws everything.
 // Charts are plain canvas, with a small helper class for scales, axes and hover.
 
 const $ = (id) => document.getElementById(id);

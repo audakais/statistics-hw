@@ -1,6 +1,6 @@
 "use strict";
 
-// Penetration-score simulation for HMWK4.
+// Penetration-score simulation for HMWK3.
 // m attackers, each one goes through n systems in order. X[j][i] is the score
 // attacker j gets on system i; every X is i.i.d.
 //   Bernoulli model:  X in {0, 1},  P(X = 1) = p
