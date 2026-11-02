@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welford and Sampling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
+<header>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW4 · WELFORD</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+  </div>
+  <h1>Welford's recurrence and the sampling mean and variance</h1>
+  <p class="subtitle">
+    First the recurrence formulas for the mean, the sum of squares and the variance, derived step by step.
+    Then m hackers, n systems and a score from 0 to 10: each hacker's sampling mean and variance are computed
+    with those formulas and compared with the true &mu; and &sigma;&sup2;.
+  </p>
+</header>
+
+<main>
+
+  <p class="ex-label">Exercise 1 &middot; Welford's recurrence formulas</p>
+
+  <!-- ============================================================ 01 -->
+  <section class="card">
+    <h2><span class="num">01</span>Starting point: Knuth's recurrence for the mean</h2>
+    <p>
+      Let M<sub>k</sub> = (x<sub>1</sub> + &hellip; + x<sub>k</sub>)/k be the mean of the first k values. The
+      idea is to write the new mean using the old mean, without keeping the whole sum. Since
+      kM<sub>k</sub> = (k&minus;1)M<sub>k&minus;1</sub> + x<sub>k</sub>, adding and subtracting
+      M<sub>k&minus;1</sub> gives:
+    </p>
+    <div class="formula">kM<sub>k</sub> = kM<sub>k&minus;1</sub> + (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)
+
+M<sub>k</sub> = M<sub>k&minus;1</sub> + (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>) / k,      M<sub>1</sub> = x<sub>1</sub></div>
+    <p>
+      The new value only moves the mean by a fraction 1/k of its distance from the old mean. The same
+      relation will be used twice below, written as k(M<sub>k</sub> &minus; M<sub>k&minus;1</sub>) =
+      x<sub>k</sub> &minus; M<sub>k&minus;1</sub>.
+    </p>
+  </section>
+
+  <!-- ============================================================ 02 -->
+  <section class="card">
+    <h2><span class="num">02</span>Derivation for the sum of squares and the variance</h2>
+    <p>
+      The sum of squares is SS<sub>k</sub> = &Sigma;<sub>i&le;k</sub> (x<sub>i</sub> &minus; M<sub>k</sub>)&sup2;.
+      Expanding the square gives the usual identity SS<sub>k</sub> = &Sigma;<sub>i&le;k</sub> x<sub>i</sub>&sup2;
+      &minus; kM<sub>k</sub>&sup2;. As with the mean, I look at what changes when x<sub>k</sub> arrives. The two
+      sums differ only by x<sub>k</sub>&sup2;, so:
+    </p>
+    <div class="formula">SS<sub>k</sub> &minus; SS<sub>k&minus;1</sub> = x<sub>k</sub>&sup2; &minus; kM<sub>k</sub>&sup2; + (k&minus;1)M<sub>k&minus;1</sub>&sup2;</div>
+    <p>
+      Replace one factor of the last term using (k&minus;1)M<sub>k&minus;1</sub> = kM<sub>k</sub> &minus;
+      x<sub>k</sub>, so that (k&minus;1)M<sub>k&minus;1</sub>&sup2; = kM<sub>k</sub>M<sub>k&minus;1</sub> &minus;
+      x<sub>k</sub>M<sub>k&minus;1</sub>. Then group the terms with x<sub>k</sub> and those with k:
+    </p>
+    <div class="formula">SS<sub>k</sub> &minus; SS<sub>k&minus;1</sub> = x<sub>k</sub>&sup2; &minus; x<sub>k</sub>M<sub>k&minus;1</sub> &minus; kM<sub>k</sub>&sup2; + kM<sub>k</sub>M<sub>k&minus;1</sub>
+                  = x<sub>k</sub>(x<sub>k</sub> &minus; M<sub>k&minus;1</sub>) &minus; M<sub>k</sub> &middot; k(M<sub>k</sub> &minus; M<sub>k&minus;1</sub>)
+                  = x<sub>k</sub>(x<sub>k</sub> &minus; M<sub>k&minus;1</sub>) &minus; M<sub>k</sub>(x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)</div>
+    <p>The last line used Knuth's relation. Collecting the common factor gives Welford's formula:</p>
+    <div class="formula"><strong>SS<sub>k</sub> = SS<sub>k&minus;1</sub> + (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)(x<sub>k</sub> &minus; M<sub>k</sub>),      SS<sub>1</sub> = 0</strong></div>
+    <p>
+      The two factors are the distance of x<sub>k</sub> from the mean before and after the update. Since
+      x<sub>k</sub> &minus; M<sub>k</sub> = (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)(k&minus;1)/k, they
+      have the same sign, so SS never decreases, which is what a sum of squares should do. The same fact gives an
+      equivalent form that only uses the old mean: SS<sub>k</sub> = SS<sub>k&minus;1</sub> +
+      (k&minus;1)/k &middot; (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)&sup2;.
+    </p>
+    <p>
+      <strong>Variance.</strong> The sample variance is s<sub>k</sub>&sup2; = SS<sub>k</sub>/(k&minus;1) for
+      k &ge; 2. Dividing the last form by k&minus;1, and using SS<sub>k&minus;1</sub> =
+      (k&minus;2)s<sub>k&minus;1</sub>&sup2;, gives a recurrence directly on the variance:
+    </p>
+    <div class="formula">s<sub>k</sub>&sup2; = (k&minus;2)/(k&minus;1) &middot; s<sub>k&minus;1</sub>&sup2; + (x<sub>k</sub> &minus; M<sub>k&minus;1</sub>)&sup2; / k,      k &ge; 2</div>
+    <p>
+      In practice it is simpler to update SS and divide only when the variance is needed, and that is what the
+      code below does.
+    </p>
+  </section>
+
+  <!-- ============================================================ 03 -->
+  <section class="card">
+    <h2><span class="num">03</span>Code</h2>
+    <p>The core logic is three lines, with M = 0, SS = 0 and k = 0 at the start:</p>
+    <pre class="code">function push(st, x) {
+  const d = x - st.M;      // x_k - M_(k-1)
+  st.M += d / ++st.k;      // M_k = M_(k-1) + (x_k - M_(k-1)) / k
+  st.SS += d * (x - st.M); // SS_k = SS_(k-1) + (x_k - M_(k-1)) (x_k - M_k)
+}</pre>
+    <p>
+      Starting from M = 0 and k = 0 is the same as M<sub>1</sub> = x<sub>1</sub> and SS<sub>1</sub> = 0: the first
+      value gives d = x<sub>1</sub>, then M = x<sub>1</sub>, and the second factor is zero. The order of the
+      lines matters, since d must use the old mean and the last line the new one. The memory needed is three
+      numbers, however many values arrive, and every prefix of the data has its mean and variance available
+      at once.
+    </p>
+    <div class="controls">
+      <label class="wide">
+        values (separated by commas or spaces)
+        <textarea id="traceInput">7, 3, 9, 0, 5, 10, 2</textarea>
+      </label>
+      <button id="traceBtn">Run the recurrence</button>
+    </div>
+    <div class="table-wrap"><div id="traceOut"></div></div>
+  </section>
+
+  <!-- ============================================================ 04 -->
+  <section class="card">
+    <h2><span class="num">04</span>Why not just use &Sigma;x&sup2; &minus; (&Sigma;x)&sup2;/n?</h2>
+    <p>
+      That formula also needs a single pass, and it is correct on paper. On a computer it subtracts two huge,
+      nearly equal numbers, and the rounding errors of both survive the subtraction. Welford's recurrence only
+      works with differences from the running mean, which stay small. To measure this I took 10&nbsp;000 random
+      integers from 0 to 10, added a large constant (which does not change SS), and compared each method
+      with the exact value, computed in integer arithmetic.
+    </p>
+    <div class="table-wrap"><div id="stabilityTable"></div></div>
+    <p>
+      The errors in the table are relative. The one-pass textbook formula is already off by 0.45% with an offset of
+      10<sup>6</sup> and by 29% with 10<sup>7</sup>. At 10<sup>9</sup> the result is meaningless. Welford's error at
+      10<sup>9</sup> is still about 10<sup>&minus;8</sup>. The recurrence is not the most accurate method
+      possible, though: the two-pass formula &Sigma;(x &minus; mean)&sup2; has a smaller error at large offsets,
+      but it needs all the data stored and read twice. Welford's advantage is that it gets
+      close to that accuracy while the data streams in. For scores from 0 to 10 with no offset all
+      three are fine, so in Exercise 2 the reason for using it is the running update, not the accuracy.
+    </p>
+  </section>
+
+  <p class="ex-label">Exercise 2 &middot; Sampling mean and variance</p>
+
+  <!-- ============================================================ 05 -->
+  <section class="card">
+    <h2><span class="num">05</span>The experiment</h2>
+    <p>
+      Each penetration attempt now gets a score from 0 to 10 instead of a 0/1 outcome. Hackers and
+      systems are as in the previous homework: m hackers, each attempting n systems, with all scores
+      independent and identically distributed. I chose a fixed distribution on {0, 1, &hellip;, 10} where most
+      attempts score low and a few score high, because a skewed distribution is a harder test than a
+      symmetric one. Two other distributions are available for comparison.
+    </p>
+    <div class="controls">
+      <label>
+        distribution
+        <select id="distSel"></select>
+      </label>
+      <label>
+        m hackers
+        <select id="mSel">
+          <option value="200">200</option>
+          <option value="2000" selected>2000</option>
+          <option value="10000">10000</option>
+        </select>
+      </label>
+      <button id="runBtn">Run experiment</button>
+      <span id="runStatus" class="status"></span>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="chart-title">probability of each score</div>
+        <div class="chart" id="pmfChart"></div>
+      </div>
+      <div id="momOut" class="mono small data-block"></div>
+    </div>
+    <p>For each hacker j, the n scores go through the recurrence once, which gives:</p>
+    <div class="formula">M<sub>n</sub><sup>(j)</sup> = sampling mean of hacker j
+s<sub>n</sub>&sup2;<sup>(j)</sup> = SS<sub>n</sub><sup>(j)</sup> / (n&minus;1) = sampling variance of hacker j</div>
+    <p>
+      Then the two averages across the hackers are compared with the theoretical values &mu; and &sigma;&sup2;.
+      These come from the exact probabilities, not from the simulation.
+    </p>
+    <p><strong>What theory predicts.</strong> For a sample of size n:</p>
+    <div class="formula">E[M<sub>n</sub>] = &mu;              Var(M<sub>n</sub>) = &sigma;&sup2; / n
+E[s<sub>n</sub>&sup2;] = &sigma;&sup2;             Var(s<sub>n</sub>&sup2;) = ( &mu;<sub>4</sub> &minus; &sigma;&#8308;(n&minus;3)/(n&minus;1) ) / n</div>
+    <p>
+      Here &mu;<sub>4</sub> = E[(X &minus; &mu;)&#8308;]. The results for M<sub>n</sub> follow directly from
+      independence. The sampling variance is unbiased because of the identity
+      &Sigma;(x<sub>i</sub> &minus; M<sub>n</sub>)&sup2; = &Sigma;(x<sub>i</sub> &minus; &mu;)&sup2; &minus;
+      n(M<sub>n</sub> &minus; &mu;)&sup2;. Taking expectations gives E[SS<sub>n</sub>] = n&sigma;&sup2; &minus;
+      n&middot;&sigma;&sup2;/n = (n&minus;1)&sigma;&sup2;, which is why the division is by n&minus;1. I checked E[s<sub>n</sub>&sup2;] and
+      Var(s<sub>n</sub>&sup2;) exactly for the default distribution with n = 3, by enumerating all 11&sup3; possible
+      samples in fractions, and they match.
+    </p>
+  </section>
+
+  <!-- ============================================================ 06 -->
+  <section class="card">
+    <h2><span class="num">06</span>Results: averages across the hackers vs. &mu; and &sigma;&sup2;</h2>
+    <p>
+      Each row is a separate experiment with its own random numbers. The z columns give the distance from the
+      theoretical value in standard errors, z = (average &minus; theory) / &radic;(Var/m), using the formulas above.
+      If the averages are only off by chance, z should behave like a standard normal.
+    </p>
+    <div class="table-wrap"><div id="resultTable"></div></div>
+    <p><strong>Conclusions from the comparison</strong> (numbers from the default run, m = 2000):</p>
+    <ul>
+      <li>
+        <strong>The average of the sampling means matches &mu;.</strong> With n = 100 it is 2.2856 against
+        &mu; = 2.29. This holds for every n, even n = 2 (2.3022): no large sample is needed, because the
+        sample mean is unbiased at any size.
+      </li>
+      <li>
+        <strong>The average of the sampling variances matches &sigma;&sup2;.</strong> With n = 100 it is 6.0093
+        against &sigma;&sup2; = 6.0059. Again this holds at small n (5.8922 at n = 5, 6.2873 at n = 2). The
+        scatter is larger there, but it stays around the true value.
+      </li>
+      <li>
+        <strong>The differences are compatible with chance.</strong> All the |z| values in the default table are
+        below 2 except one (2.33, for the mean at n = 50). With 20 z values, about one beyond 2 is what
+        one expects, so this is no evidence of bias.
+      </li>
+      <li>
+        <strong>Dividing by n instead of n&minus;1 is really biased.</strong> The column "SS/n" shows it: at n = 2
+        its average is 3.14, about half of &sigma;&sup2; = 6.01, as predicted by
+        E[SS<sub>n</sub>/n] = (n&minus;1)&sigma;&sup2;/n. The sample mean sits inside the data, so
+        deviations from it are smaller than deviations from &mu;.
+      </li>
+      <li>
+        <strong>Unbiasedness does not carry over to s.</strong> The average of s<sub>n</sub> at n = 5 is 2.22,
+        below &sigma; = 2.45. The square root is concave, so by Jensen's inequality E[s] &lt; &sigma;. An
+        estimator can be unbiased for &sigma;&sup2; and not for &sigma;.
+      </li>
+    </ul>
+
+    <h3 style="text-align:left">why this is useful in inferential statistics</h3>
+    <p>
+      In a real study there is one sample and &mu; and &sigma;&sup2; are unknown: only one hacker's row
+      exists, and the other m&minus;1 are not available. The experiment shows what cannot be seen from one
+      sample: M<sub>n</sub> and s<sub>n</sub>&sup2; are random variables with a sampling distribution centred on the true
+      parameters. So a single M<sub>n</sub> and s<sub>n</sub>&sup2; are legitimate estimates, with no systematic error in
+      either direction.
+    </p>
+    <p>
+      The second step is that s<sub>n</sub>&sup2; can stand in for the unknown &sigma;&sup2; to measure the precision of
+      M<sub>n</sub>: the estimated standard error is s<sub>n</sub>/&radic;n, and this is what confidence
+      intervals and t tests are built on. The last column of the table tests it directly: for each hacker
+      it computes the 95% interval M<sub>n</sub> &plusmn; t<sub>0.975, n&minus;1</sub> s<sub>n</sub>/&radic;n, using
+      only that hacker's data, and counts how often it contains the true &mu;. The share is 0.94 at n = 50 and
+      stays close to 0.95 for larger n. For n = 2 and n = 5 it is only 0.83 and 0.89: the t interval assumes
+      normal data, and this distribution is skewed, so at very small n the nominal level is not reached.
+    </p>
+  </section>
+
+  <!-- ============================================================ 07 -->
+  <section class="card">
+    <h2><span class="num">07</span>Effect of n on the variability</h2>
+    <p>
+      The averages do not depend on n, but the spread of the individual hackers' values does. The charts
+      show the standard deviation across hackers of M<sub>n</sub> and of s<sub>n</sub>&sup2;, on log&ndash;log axes,
+      with the formulas of section 05 as dashed lines. The fitted slopes (n &ge; 10) are in the box below.
+    </p>
+    <div class="two-col">
+      <div><div class="chart-title">sd of the sampling means</div><div class="chart" id="sdMeanChart"></div></div>
+      <div><div class="chart-title">sd of the sampling variances</div><div class="chart" id="sdVarChart"></div></div>
+    </div>
+    <div class="legend" id="sdLegend"></div>
+    <div id="slopeOut" class="mono small data-block"></div>
+
+    <div class="chart-title">sampling means across hackers</div>
+    <div class="grid4" id="histMeans"></div>
+    <div class="chart-title">sampling variances across hackers</div>
+    <div class="grid4" id="histVars"></div>
+    <p class="hint">The x axis is the same in each row. The curve is a normal density with the theoretical mean and variance.</p>
+
+    <div class="chart-title">running values of five hackers, from the recurrence</div>
+    <div class="seg" id="runQty">
+      <button data-v="M" class="on">M<sub>k</sub></button>
+      <button data-v="S2">s<sub>k</sub>&sup2;</button>
+    </div>
+    <div class="chart" id="runChart"></div>
+    <div class="legend" id="runLegend"></div>
+
+    <ul>
+      <li>
+        <strong>Both spreads shrink like 1/&radic;n.</strong> Multiplying n by 100 divides the standard deviation by
+        10. In the default run sd(M<sub>n</sub>) goes from 0.790 at n = 10 to 0.078 at n = 1000, and
+        sd(s<sub>n</sub>&sup2;) from 3.31 to 0.31. The fitted slopes are &minus;0.503 and &minus;0.508, against
+        the theoretical &minus;1/2. Both estimators are therefore consistent: unbiased, with a variance that goes
+        to zero. More systems per hacker mean each single hacker's estimate gets closer to the truth.
+      </li>
+      <li>
+        <strong>The variance is harder to estimate than the mean.</strong> In relative terms, sd(M<sub>n</sub>) /
+        &mu; is 0.35 at n = 10, and sd(s<sub>n</sub>&sup2;) / &sigma;&sup2; is 0.55. For large n,
+        sd(s<sub>n</sub>&sup2;)/&sigma;&sup2; &asymp; &radic;((&kappa; &minus; 1)/n), where &kappa; =
+        &mu;<sub>4</sub>/&sigma;&#8308; is the kurtosis. So it depends on the tails of the distribution, while
+        Var(M<sub>n</sub>) only depends on &sigma;&sup2;. Compare the three distributions: the uniform one has
+        low kurtosis and gives a smaller relative spread than the skewed one.
+      </li>
+      <li>
+        <strong>The shape changes too.</strong> At n = 5 the sampling variances are strongly right-skewed: a
+        hacker with one lucky 10 gets a large s&sup2;, and the normal curve does not fit. At n = 1000 both
+        histograms are close to the normal curve, since M<sub>n</sub> is an average and s<sub>n</sub>&sup2; is
+        essentially one too.
+      </li>
+      <li>
+        <strong>m and n do different jobs.</strong> n sets the precision of one hacker's estimates (standard
+        deviation &prop; 1/&radic;n). m does not make any single hacker's estimate better. It only reduces the
+        error of the averages across hackers, by 1/&radic;m. That is why the z columns stay of order 1 for every n.
+      </li>
+      <li>
+        <strong>M<sub>n</sub> and s<sub>n</sub>&sup2; are not independent here.</strong> Cov(M<sub>n</sub>,
+        s<sub>n</sub>&sup2;) = &mu;<sub>3</sub>/n, which is positive for a right-skewed distribution: hackers
+        with a high average also tend to have a high variance. The simulated value at n = 100 is 0.174 against
+        0.171 from the formula. For the symmetric uniform distribution &mu;<sub>3</sub> = 0, and the covariance
+        is zero up to noise.
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK4</p>
+</footer>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="welford.js"></script>
+<script src="chart.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

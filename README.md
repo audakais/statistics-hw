@@ -4,3 +4,4 @@
 - hmwk2-wallet-pipeline/ — wallet seed to Ethereum address report
 - hmwk3-caesar-vs-ecc/ — Caesar cipher vs. toy ECC scheme: encryption, cryptanalysis and attacks
 - hmwk3-lln-clt/ — penetration score of n systems and m attackers: LLN and CLT by simulation
+- hmwk4-welford/ — Welford recurrence, sampling mean and variance across m hackers
