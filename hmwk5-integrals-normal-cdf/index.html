@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrals and Normal CDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
+<header>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW5 · INTEGRALS · CDF</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+  </div>
+  <h1>Riemann vs. Lebesgue sums, and computing the normal CDF</h1>
+  <p class="subtitle">
+    The first part computes the same integrals by cutting the domain (Riemann) and by cutting the range (Lebesgue),
+    and compares accuracy, convergence and cost, including two pathological functions. The second part explains
+    why &Phi;(x) has no elementary formula, how the error function fixes that on paper, and which numerical
+    method actually gives its digits.
+  </p>
+</header>
+
+<main>
+
+  <p class="ex-label">Exercise 1 &middot; Riemann and Lebesgue integration</p>
+
+  <!-- ============================================================ 01 -->
+  <section class="card">
+    <h2><span class="num">01</span>Two ways to cut the area</h2>
+    <p>
+      <strong>Riemann.</strong> Split [a, b] into N subintervals of width h = (b &minus; a)/N, pick a tag
+      &xi;<sub>k</sub> in each one and add up the rectangles. I use two tags: the right endpoint (the plain
+      definition) and the midpoint (the usual refinement).
+    </p>
+    <div class="formula">R<sub>N</sub> = h &middot; &Sigma;<sub>k=1..N</sub> f(&xi;<sub>k</sub>)        &xi;<sub>k</sub> = x<sub>k</sub> (right)  or  (x<sub>k&minus;1</sub> + x<sub>k</sub>)/2 (midpoint)</div>
+    <p>
+      <strong>Lebesgue.</strong> Split the range of f instead, with levels lo = t<sub>0</sub> &lt; t<sub>1</sub> &lt;
+      &hellip; &lt; t<sub>N</sub>, and take the preimages E<sub>k</sub> = {x : t<sub>k</sub> &le; f(x) &lt;
+      t<sub>k+1</sub>}. The simple function equal to t<sub>k</sub> on E<sub>k</sub> lies below f, and its integral is
+      &Sigma; t<sub>k</sub> &mu;(E<sub>k</sub>), where &mu; is length. Writing m(y) = &mu;{x : f(x) &ge; y}, so that
+      &mu;(E<sub>k</sub>) = m(t<sub>k</sub>) &minus; m(t<sub>k+1</sub>), and summing by parts:
+    </p>
+    <div class="formula">L<sub>N</sub> = &Sigma;<sub>k</sub> t<sub>k</sub> &mu;(E<sub>k</sub>) = t<sub>0</sub>(b &minus; a) + &Sigma;<sub>k=1..N</sub> (t<sub>k</sub> &minus; t<sub>k&minus;1</sub>) &middot; m(t<sub>k</sub>)</div>
+    <p>
+      This is the lower Lebesgue sum. It is always &le; the integral, and it increases to it as the levels get finer
+      (monotone convergence). Its limit is the "layer cake" formula &int;f = lo&middot;(b &minus; a) +
+      &int;<sub>lo</sub><sup>hi</sup> m(y) dy. As the Riemann refinement, I also evaluate m in the middle of each
+      band, (t<sub>k&minus;1</sub> + t<sub>k</sub>)/2.
+    </p>
+    <p>
+      The algebra shows what each method really is numerically. A Riemann sum is a quadrature of
+      <em>f(x) in x</em>. A Lebesgue sum is a quadrature of <em>m(y) in y</em>. So each one is accurate when its own
+      integrand is smooth, and that is what explains every result below. The price of the Lebesgue side is that
+      m(y) must be known: for each level I need the measure of a preimage, which means inverting f.
+    </p>
+    <div class="controls">
+      <label>function <select id="picFn"></select></label>
+      <label>N
+        <select id="picN">
+          <option value="4">4</option>
+          <option value="8" selected>8</option>
+          <option value="16">16</option>
+        </select>
+      </label>
+      <div class="seg" id="picMode">
+        <button data-v="R" class="on">Riemann (midpoint)</button>
+        <button data-v="L">Lebesgue (lower)</button>
+      </div>
+    </div>
+    <div class="chart" id="picChart"></div>
+    <div id="picOut" class="mono small data-block"></div>
+    <p class="hint">Riemann fills vertical strips, one per subinterval. Lebesgue fills, at every x, up to the highest level that f reaches there, so the shaded region is made of horizontal bands over the preimages.</p>
+  </section>
+
+  <!-- ============================================================ 02 -->
+  <section class="card">
+    <h2><span class="num">02</span>The functions and their preimages</h2>
+    <p>
+      I used the examples of the assignment and added the standard normal density on [0, 3], which links this
+      exercise to the next one. The exact values are 2, 1/3, 2, 1/4, 2, 1/2, Si(&pi;) and &Phi;(3) &minus; 1/2.
+      Si(&pi;) = &int;<sub>0</sub><sup>&pi;</sup> sin(x)/x dx has no elementary form either, so I computed it from the
+      series &Sigma; (&minus;1)<sup>n</sup>&pi;<sup>2n+1</sup>/((2n+1)(2n+1)!) and &Phi;(3) with the reference method of
+      Exercise 2. For 1/&radic;x, which is unbounded, the levels are geometric, t<sub>k</sub> = Y<sup>k/N</sup> with Y =
+      N&sup2;. The part above Y is left out, and it is worth exactly 1/Y.
+    </p>
+    <div class="table-wrap"><div id="fnTable"></div></div>
+    <p>
+      For seven of the eight functions the preimage has a closed form. For sin(x)/x it does not: the function is
+      decreasing on [0, &pi;], so {f &ge; y} is an interval [0, r(y)], but r(y) solves sin(r)/r = y, and I find it by
+      bisection with 60 steps.
+    </p>
+  </section>
+
+  <!-- ============================================================ 03 -->
+  <section class="card">
+    <h2><span class="num">03</span>Accuracy and convergence</h2>
+    <p>
+      I used N = 3, 7, 15, &hellip;, 16383 (that is, 2<sup>j</sup> &minus; 1). An odd N is deliberate: with an even N the
+      point 0.5 is always a grid node, and the jumps and the kink at 0.5 would be integrated exactly by luck. Each cell
+      gives the error at N = 4095, and in brackets the slope of log(error) against log(N), fitted for N &ge; 63. A
+      slope of &minus;2 means that doubling N divides the error by 4.
+    </p>
+    <div class="table-wrap"><div id="errTable"></div></div>
+    <div class="controls">
+      <label>function <select id="convFn"></select></label>
+    </div>
+    <div class="chart-title">absolute error against N, log&ndash;log</div>
+    <div class="chart" id="convChart"></div>
+    <div class="legend" id="convLegend"></div>
+    <p class="hint">Errors that are zero to machine precision are drawn at 10<sup>&minus;16</sup>.</p>
+    <ul>
+      <li>
+        <strong>Both approaches converge to the same value for every function here.</strong> All eight are Riemann
+        integrable (1/&radic;x as an improper integral), and the theorem says the Lebesgue integral then exists and
+        is equal. The numbers agree with it: every column goes to zero.
+      </li>
+      <li>
+        <strong>The plain versions are both first order.</strong> The right-endpoint Riemann sum and the lower Lebesgue
+        sum have slope &minus;1 for the smooth functions. For sin x and |x &minus; 0.5| the right Riemann sum is
+        second order, because the function takes the same value at both ends of the interval. Then the right-endpoint
+        sum equals the trapezoid rule.
+      </li>
+      <li>
+        <strong>Smooth functions favour Riemann.</strong> The midpoint rule has slope &minus;2. The middle-level
+        Lebesgue sum only reaches about &minus;1.5 for sin x, x&sup2; and sin(x)/x. The reason is that each of them has
+        a flat point (f&prime; = 0 at &pi;/2, at 0 and at 0), and near the corresponding level the preimage changes very
+        fast: for sin x, m(y) = &pi; &minus; 2 arcsin y has infinite slope at y = 1. A quadrature of a function with a
+        square-root singularity loses half an order, which is what the table shows. For the normal density the flat
+        point is at x = 0. Its Lebesgue error does not settle into a clean power law in this range, and the fitted
+        slope is &minus;1.28.
+      </li>
+      <li>
+        <strong>Step functions favour Lebesgue.</strong> For both step functions m(y) is constant inside the range
+        (m = 0.5), so both Lebesgue sums are exact for every N. Riemann always has one cell that straddles the jump,
+        and the error there is (size of the jump) &times; h/2. It is first order even with midpoints. The same happens
+        with |x &minus; 0.5|: m(y) = 1 &minus; 2y is linear, so the middle-level sum is exact. The midpoint Riemann sum
+        loses h&sup2;/4 in the cell that contains the kink.
+      </li>
+      <li>
+        <strong>The singular function favours Lebesgue by far.</strong> For 1/&radic;x the midpoint Riemann error only
+        decreases like N<sup>&minus;1/2</sup> (9.5&middot;10<sup>&minus;3</sup> at N = 4095), because the cells near 0
+        miss a large part of the area. In the range, m(y) = 1/y&sup2; is perfectly smooth. With geometric levels the
+        middle-level Lebesgue error is 4.2&middot;10<sup>&minus;6</sup> at the same N, more than 2000 times smaller.
+        To be fair, a Riemann sum on a graded grid, refined near 0, would also recover. The point is that the
+        Lebesgue partition adapts to the singularity without being told where it is.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ 04 -->
+  <section class="card">
+    <h2><span class="num">04</span>Computational cost</h2>
+    <p>
+      Both sums cost N "units", but the unit is different: one evaluation of f for Riemann, one evaluation of m for
+      Lebesgue. Times are measured live in this browser, N = 4095, averaged over repeated runs.
+    </p>
+    <div class="controls">
+      <button id="timeBtn">Measure the times</button>
+      <span id="timeStatus" class="status"></span>
+    </div>
+    <div class="table-wrap"><div id="timeTable"></div></div>
+    <ul>
+      <li>
+        When m has a closed form, the two methods cost about the same, with Lebesgue at most two or three times slower. The
+        Lebesgue loop also has to compute the levels, and asin or sqrt costs about as much as sin.
+      </li>
+      <li>
+        When m has to be found numerically, the cost is multiplied by the cost of the inversion. For sin(x)/x every
+        level needs 60 evaluations of f for the bisection, and the Lebesgue sum becomes 30 to 50 times slower in my
+        runs, for a less accurate result.
+      </li>
+      <li>
+        For a function of several variables or with many oscillations, there is no closed form and no simple
+        bisection. The only general way to obtain &mu;(E<sub>k</sub>) is to sample f on a fine grid and count the
+        points falling in each band. The table below does this for sin x with N = 1000 levels and M sample points.
+      </li>
+    </ul>
+    <div class="table-wrap"><div id="countTable"></div></div>
+    <p>
+      The counted version stops improving at about 10<sup>&minus;5</sup>, because each sample is rounded to the middle
+      of its band. With the same M samples the midpoint Riemann sum reaches 10<sup>&minus;10</sup>. Once the measure
+      is obtained by counting grid points, the Lebesgue sum is simply the Riemann sum regrouped by value, plus the
+      rounding to the levels. So as a <em>numerical</em> method, Lebesgue is only competitive when the preimages are
+      cheap to measure. Its real strength is as a definition, as the next section shows.
+    </p>
+  </section>
+
+  <!-- ============================================================ 05 -->
+  <section class="card">
+    <h2><span class="num">05</span>Pathological functions</h2>
+    <p>
+      <strong>Dirichlet function</strong>, f = 1 on the rationals and 0 on the irrationals of [0, 1]. Every
+      subinterval contains both kinds of points, so every upper Darboux sum is 1 and every lower one is 0, for any
+      partition. The Riemann sums depend only on the choice of tags, and the function is not Riemann integrable.
+      On the Lebesgue side the partition of the range only has to separate 0 and 1. The preimage of 1 is
+      &#8474; &cap; [0, 1], which is countable. Covering its k-th element with an interval of length
+      &epsilon;/2<sup>k</sup> shows that its measure is below &epsilon; for every &epsilon;, so it is 0. Hence
+      &int;f = 1&middot;0 + 0&middot;1 = 0, exactly, with a single level.
+    </p>
+    <div class="table-wrap">
+      <table class="defs num-table">
+        <thead><tr><th>method</th><th>value for any N</th></tr></thead>
+        <tbody>
+          <tr><td>Riemann, rational tags (midpoints (2k&minus;1)/(2N))</td><td>1</td></tr>
+          <tr><td>Riemann, irrational tags (midpoints + (&radic;2 &minus; 1)/(4N))</td><td>0</td></tr>
+          <tr><td>upper / lower Darboux sum</td><td>1 / 0</td></tr>
+          <tr><td>Lebesgue</td><td class="best">0</td></tr>
+          <tr><td>computer code "is x rational?" on doubles</td><td class="bad">1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The last row is a warning about numerics. Every double is a fraction m/2<sup>j</sup>, so a program that
+      evaluates the Dirichlet function on floating-point inputs, even random ones, finds 1 everywhere and returns
+      1. This function cannot be integrated by sampling at all. Only the measure-theoretic argument gives the answer.
+    </p>
+    <p>
+      <strong>Thomae's function</strong>, f(p/q) = 1/q in lowest terms and 0 on the irrationals. It is discontinuous
+      at every rational, but only finitely many points have f &gt; &epsilon;, so it <em>is</em> Riemann integrable,
+      with integral 0. The lower Darboux sums are all 0. The upper sum takes, on each cell, 1/q for the smallest
+      denominator q of a fraction inside the cell. I computed it, and the Riemann sums with rational tags, exactly in
+      integer arithmetic.
+    </p>
+    <div class="controls">
+      <button id="thomaeBtn">Compute the Thomae table</button>
+      <span id="thomaeStatus" class="status"></span>
+    </div>
+    <div class="table-wrap"><div id="thomaeTable"></div></div>
+    <p>
+      All Riemann-type values go to 0, but slowly: the upper sum only drops by a factor of about 3.5 for every
+      factor 10 in N, roughly like N<sup>&minus;0.55</sup>, and the right-endpoint sum is still 1.3&middot;10<sup>&minus;3</sup> at N =
+      10<sup>4</sup>. The Lebesgue integral is 0 at once: f is nonzero only on a set of measure zero, so it equals 0
+      almost everywhere. The last column evaluates the function on the doubles nearest to the midpoints. It gives
+      exactly 0.5/N, a value near 0, but for a meaningless reason. Almost all those doubles have a denominator of
+      2<sup>53</sup> or more, and the sum comes only from the few midpoints that are exact binary fractions: 1/4 and 3/4
+      for N = 10, sixteen odd multiples of 1/32 for N = 10<sup>4</sup>.
+    </p>
+    <p>
+      <strong>What the two examples show.</strong> When a function is Riemann integrable, the Lebesgue integral
+      gives the same number (section 03, and Thomae's function here). When it is not, as with Dirichlet, the Lebesgue integral
+      can still exist and be obvious. The improper case 1/&radic;x is in between: Riemann needs a limit, Lebesgue
+      handles it directly, and numerically the range partition is much better.
+    </p>
+  </section>
+
+  <p class="ex-label">Exercise 2 &middot; Numerical computation of the normal CDF</p>
+
+  <!-- ============================================================ 06 -->
+  <section class="card">
+    <h2><span class="num">06</span>Why &Phi; has no elementary formula</h2>
+    <div class="formula">&Phi;(x) = P(Z &le; x) = &int;<sub>&minus;&infin;</sub><sup>x</sup> &phi;(t) dt,      &phi;(t) = e<sup>&minus;t&sup2;/2</sup> / &radic;(2&pi;)</div>
+    <p>
+      &phi; is continuous, so by the fundamental theorem of calculus &Phi; is an antiderivative of &phi;. An
+      antiderivative therefore exists. The course notes on Hogg, McKean and Craig &sect;3.4 make exactly this
+      correction to the textbook's wording. What fails is that this antiderivative cannot be written with
+      <em>elementary</em> functions, meaning functions built from rational functions with finitely many arithmetic
+      operations, compositions, exponentials, logarithms and algebraic functions (sin, cos and arctan are included,
+      since they are complex exponentials and logarithms).
+    </p>
+    <p>
+      <strong>Liouville's theorem</strong>, in the form given by Rosenlicht (<em>Integration in finite terms</em>,
+      Amer. Math. Monthly 79, 1972), which the notes cite. Let f and g be rational functions with g not constant.
+      Then &int; f(x) e<sup>g(x)</sup> dx is elementary if and only if there is a rational function R with
+    </p>
+    <div class="formula">R&prime;(x) + g&prime;(x) R(x) = f(x),        and then  &int; f e<sup>g</sup> dx = R e<sup>g</sup> + C</div>
+    <p>
+      For the normal density f = 1 and g = &minus;x&sup2;/2, so I need a rational R with R&prime; &minus; xR = 1. There
+      is none:
+    </p>
+    <ul>
+      <li>
+        <strong>R has no poles.</strong> Suppose R has a pole of order k &ge; 1 at a point a (possibly complex). Then
+        R&prime; has a pole of order k + 1 at a, while xR has a pole of order at most k. The two cannot cancel, so
+        R&prime; &minus; xR has a pole at a, but it should equal 1, which has none.
+      </li>
+      <li>
+        <strong>So R is a polynomial, and degrees do not match.</strong> R = 0 gives 0 &ne; 1. If R has degree d &ge; 0,
+        then xR has degree d + 1 and R&prime; has degree d &minus; 1. So R&prime; &minus; xR has degree d + 1 &ge; 1 and
+        cannot be the constant 1.
+      </li>
+    </ul>
+    <p>
+      Hence &int; e<sup>&minus;x&sup2;/2</sup> dx is not elementary. Neither is &Phi;: if it were,
+      &radic;(2&pi;)&Phi;(x) would be an elementary antiderivative of e<sup>&minus;x&sup2;/2</sup>. The same argument
+      with g = &minus;x&sup2; covers e<sup>&minus;x&sup2;</sup> and the error function. Note that the theorem does not say
+      that &Phi; is hard to compute. It only says that no finite formula with the usual functions gives it.
+    </p>
+  </section>
+
+  <!-- ============================================================ 07 -->
+  <section class="card">
+    <h2><span class="num">07</span>The error function: exact on paper, numerical in practice</h2>
+    <p>
+      Since the integral cannot be expressed with the known functions, the standard move is to give it a name and
+      study it as a new function:
+    </p>
+    <div class="formula">erf(z) = (2/&radic;&pi;) &int;<sub>0</sub><sup>z</sup> e<sup>&minus;u&sup2;</sup> du,        erfc(z) = 1 &minus; erf(z)</div>
+    <p>
+      In &Phi;(x) = 1/2 + (1/&radic;(2&pi;)) &int;<sub>0</sub><sup>x</sup> e<sup>&minus;t&sup2;/2</sup> dt, substitute
+      t = &radic;2&middot;u, dt = &radic;2&middot;du. The upper limit becomes x/&radic;2 and the constant
+      &radic;2/&radic;(2&pi;) = 1/&radic;&pi;, so:
+    </p>
+    <div class="formula"><strong>&Phi;(x) = &frac12; [ 1 + erf(x/&radic;2) ]          1 &minus; &Phi;(x) = &frac12; erfc(x/&radic;2)</strong></div>
+    <p>
+      This representation is exact. erf is a well-understood function: entire, odd, with erf(&infin;) = 1 and with a known
+      power series, continued fraction and asymptotic expansion. Every property of &Phi; can be derived from those
+      of erf. But a name is not a number. To get the digits of erf(1.3), one still has to sum a series or evaluate
+      an approximation. The same is true of exp and sin: they are only "known" because a library evaluates them
+      with polynomial approximations. The difference is practical. exp and sin are built into every language,
+      while erf often is not (JavaScript has no Math.erf), so the method has to be chosen and implemented.
+    </p>
+    <p>
+      There is also a precision trap. In double precision, 1 &minus; &Phi;(x) for large x cannot be obtained as
+      1 &minus; &Phi;(x): the spacing of doubles just below 1 is 1.1&middot;10<sup>&minus;16</sup>, so &Phi;(8) =
+      1 &minus; 6.2&middot;10<sup>&minus;16</sup> keeps only one digit of its tail, and from about x = 8.3 on &Phi;(x)
+      rounds to exactly 1. A good method must compute the small one of &Phi;(x) and 1 &minus; &Phi;(x) directly, which
+      is the job of erfc.
+    </p>
+  </section>
+
+  <!-- ============================================================ 08 -->
+  <section class="card">
+    <h2><span class="num">08</span>Five methods, and the one I would use</h2>
+    <p>By symmetry, &Phi;(&minus;x) = 1 &minus; &Phi;(x), so every method only needs x &ge; 0.</p>
+    <table class="defs">
+      <thead><tr><th>method</th><th>formula</th><th>where it works</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Simpson / trapezoid</td>
+          <td>&Phi;(x) = &frac12; + &int;<sub>0</sub><sup>x</sup>&phi;, composite rule with n subintervals</td>
+          <td>any x, error O(h<sup>4</sup>) and O(h&sup2;). Costs n + 1 exponentials.</td>
+        </tr>
+        <tr>
+          <td>Taylor series of erf</td>
+          <td>&frac12; + (1/&radic;(2&pi;)) &Sigma; (&minus;1)<sup>k</sup> x<sup>2k+1</sup> / (2<sup>k</sup> k! (2k+1))</td>
+          <td>small x. Alternating: the terms grow fast with x before cancelling (up to 4&middot;10<sup>5</sup> at x = 6).</td>
+        </tr>
+        <tr>
+          <td>series with positive terms</td>
+          <td>&frac12; + &phi;(x) (x + x&sup3;/3 + x<sup>5</sup>/(3&middot;5) + x<sup>7</sup>/(3&middot;5&middot;7) + &hellip;)</td>
+          <td>small and medium x, no cancellation inside the sum (Marsaglia, J. Stat. Software 11, 2004)</td>
+        </tr>
+        <tr>
+          <td>Laplace continued fraction</td>
+          <td>1 &minus; &Phi;(x) = &phi;(x) / (x + 1/(x + 2/(x + 3/(x + &hellip;))))</td>
+          <td>tails. It converges for every x &gt; 0, but slowly near 0.</td>
+        </tr>
+        <tr>
+          <td>Abramowitz &amp; Stegun 26.2.17</td>
+          <td>1 &minus; &phi;(x)(b<sub>1</sub>t + &hellip; + b<sub>5</sub>t<sup>5</sup>), t = 1/(1 + 0.2316419x)</td>
+          <td>any x, but only to 7.5&middot;10<sup>&minus;8</sup> absolute</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The positive series is the Taylor series multiplied through by e<sup>x&sup2;/2</sup>. Its terms are
+      x<sup>2k+1</sup>/(1&middot;3&middot;&hellip;&middot;(2k+1)), which can be checked by differentiating: the
+      derivative of &phi;(x)S(x) must be &phi;(x), which gives S&prime; = 1 + xS, and the series satisfies it term by
+      term. I evaluate the continued fraction forward with the modified Lentz algorithm, stopping when the update
+      factor equals 1 to machine precision, so the number of terms adapts to x.
+    </p>
+    <p>
+      <strong>Final method.</strong> The results in the next section show that the series and the continued fraction
+      are complementary. So for |x| &lt; 2 I use the series, which needs at most 24 terms. For |x| &ge; 2 I use the
+      continued fraction, which needs at most 106 terms and only 12 at x = 10. In both cases it returns &Phi;(x) and
+      1 &minus; &Phi;(x) separately.
+    </p>
+    <pre class="code">function normalCdf(x) {
+  const ax = Math.abs(x);
+  let upper;                                      // P(Z &gt; |x|)
+  if (ax &lt; 2) upper = 0.5 - pdf(ax) * seriesSum(ax);
+  else upper = pdf(ax) / cfDenominator(ax);
+  return x &gt;= 0 ? { p: 1 - upper, q: upper } : { p: upper, q: 1 - upper };
+}</pre>
+    <p>
+      One detail matters in the far tail: &phi;(x) = e<sup>&minus;x&sup2;/2</sup>/&radic;(2&pi;), and the rounding error of
+      x&middot;x is multiplied by x&sup2;/2 inside the exponential. I split x&sup2; = x<sub>h</sub>&sup2; +
+      (x &minus; x<sub>h</sub>)(x + x<sub>h</sub>), with x<sub>h</sub> a multiple of 1/16. Then x<sub>h</sub>&sup2; is
+      exact and the remaining part is small. The other files are in the page source: <code>normcdf.js</code>
+      contains all the methods.
+    </p>
+  </section>
+
+  <!-- ============================================================ 09 -->
+  <section class="card">
+    <h2><span class="num">09</span>Reference values and comparison with the web</h2>
+    <p>
+      To measure errors around 10<sup>&minus;16</sup>, the reference must be much more precise than a double. I
+      wrote it with integer (BigInt) arithmetic in fixed point, with 80 + 0.434&middot;x&sup2; decimal digits. It uses
+      exact decimal x, &pi; from Machin's formula, e<sup>x&sup2;/2</sup> from its Taylor series and the positive series
+      above, so no step is in floating point. It is too slow for real use (about a quarter of a millisecond per
+      value), but it gives 30 correct digits.
+    </p>
+    <p>
+      I checked it against a trusted source on the web. The table of the 68&ndash;95&ndash;99.7 rule on Wikipedia
+      gives P(|Z| &lt; k) = 2&Phi;(k) &minus; 1 to 15 decimals for k = 0.5, 1, &hellip;, 8. All 16 values agree with the
+      reference to the last digit shown:
+    </p>
+    <div class="table-wrap"><div id="webTable"></div></div>
+    <p>
+      As a second, independent check I compared with Python's <code>math.erfc</code>. All values agree to at least 13
+      significant digits, including 1 &minus; &Phi;(20) = 2.7536&middot;10<sup>&minus;89</sup>.
+    </p>
+    <p><strong>Evaluation at several points</strong>, with the final method:</p>
+    <div class="table-wrap"><div id="pointsTable"></div></div>
+    <div class="controls">
+      <label>x <input type="text" id="calcX" value="1.2345"></label>
+      <button id="calcBtn">Evaluate with every method</button>
+    </div>
+    <div class="table-wrap"><div id="calcOut"></div></div>
+  </section>
+
+  <!-- ============================================================ 10 -->
+  <section class="card">
+    <h2><span class="num">10</span>Accuracy and efficiency</h2>
+    <p>
+      Each chart shows, for x from &minus;8 to 8 in steps of 0.05, the relative error of the <em>smaller</em> of
+      &Phi;(x) and 1 &minus; &Phi;(x). This is the value one needs for p-values and tail probabilities. For the methods
+      that compute only &Phi;, the tail is taken as 1 &minus; &Phi;. The dashed line marks the double-precision limit
+      1.1&middot;10<sup>&minus;16</sup>.
+    </p>
+    <div class="controls">
+      <button id="accBtn">Compute the accuracy charts</button>
+      <span id="accStatus" class="status"></span>
+    </div>
+    <div class="grid3" id="accCharts"></div>
+    <div class="table-wrap"><div id="accTable"></div></div>
+    <ul>
+      <li>
+        <strong>Simpson</strong> with 64 subintervals has an absolute error of at most 2.2&middot;10<sup>&minus;9</sup>.
+        Its convergence is the expected h<sup>4</sup>: at x = 2 the error drops by 16 each time n doubles, from
+        4.9&middot;10<sup>&minus;5</sup> with n = 4 to 2.2&middot;10<sup>&minus;12</sup> with n = 256. The trapezoid rule is
+        h&sup2;. Being an integral from 0, it gives the tail as &frac12; minus something close to &frac12;, so
+        the relative error in the tail grows without limit. It is also the slowest method, with 65
+        exponentials per value.
+      </li>
+      <li>
+        <strong>The alternating Taylor series</strong> is excellent up to |x| &asymp; 3 and then collapses: the tail error is
+        10<sup>&minus;10</sup> at x = 4, 10<sup>&minus;6</sup> at x = 5 and 6% at x = 6. Its terms
+        reach about 4&middot;10<sup>5</sup> at x = 6 before cancelling down to a result below 1, and every digit lost
+        in the cancellation is lost for good. At x = 8 even &Phi; has an absolute error of 3&middot;10<sup>&minus;5</sup>.
+        This is the method suggested in the course notes. On paper it is correct for every x, and it is reliable
+        only for small x.
+      </li>
+      <li>
+        <strong>The positive series</strong> gives &Phi; to about 10<sup>&minus;15</sup> everywhere, because nothing
+        cancels inside the sum. But for large x the tail is still &frac12; &minus; (something close to &frac12;), and the
+        relative error there grows like the size of 1/(1 &minus; &Phi;).
+      </li>
+      <li>
+        <strong>The continued fraction</strong> is the opposite: in the tails it needs few terms (106 at x = 2, 52 at
+        x = 3, 12 at x = 10) and gets the tail to full relative precision, even at x = 20 where it is
+        10<sup>&minus;89</sup>. But at x = 0.5 it needs 1564 terms, and for |x| &le; 0.2 it does not converge within
+        my 5000-term limit.
+      </li>
+      <li>
+        <strong>Abramowitz &amp; Stegun</strong> is the fastest and meets its stated bound: the largest absolute error
+        I found is 7.41&middot;10<sup>&minus;8</sup> (bound 7.5&middot;10<sup>&minus;8</sup>). Seven digits are fine for a
+        printed table, but in the tail the error is relative to a tiny number. At x = 8 it is 7%.
+      </li>
+      <li>
+        <strong>The final method</strong> takes the good half of the two series methods. The absolute error on &Phi;
+        is at most 2.5&middot;10<sup>&minus;16</sup> and the relative error on the tail is at most 7.8&middot;10<sup>&minus;15</sup>,
+        at x = &minus;1.85. The remaining error comes from the subtraction &frac12; &minus; &phi;S just below the switch,
+        where the tail is still about 0.03. Moving the switch is a trade between speed and accuracy, as the table below
+        shows: a lower switch uses the slower continued fraction on a wider range.
+      </li>
+    </ul>
+    <div class="chart-title">terms needed by each expansion</div>
+    <div class="table-wrap"><div id="termsTable"></div></div>
+    <div class="chart-title">choice of the switch point</div>
+    <div class="table-wrap"><div id="switchTable"></div></div>
+    <div class="chart-title">time per evaluation, measured in this browser</div>
+    <div class="controls">
+      <button id="speedBtn">Measure the speed</button>
+      <span id="speedStatus" class="status"></span>
+    </div>
+    <div class="table-wrap"><div id="speedTable"></div></div>
+    <p>
+      In my runs (Node 24, on 10<sup>6</sup> random points in [&minus;6, 6]), A&amp;S took about 0.13 &mu;s, the series
+      0.3 &mu;s, the final method 0.7 &mu;s and Simpson 4.4 &mu;s. The continued fraction alone averaged 8 &mu;s,
+      because of the points near 0. The high-precision reference takes about 0.27 ms. Your browser will give
+      different absolute numbers, but the order should be the same.
+    </p>
+    <p>
+      <strong>Conclusion.</strong> Being expressed with erf does not settle how to compute &Phi;. Each method is
+      accurate somewhere and poor elsewhere. Numerical integration is general but slow, and it loses the tail. The
+      Taylor series of the notes is ruined by cancellation beyond |x| &asymp; 3, and polynomial fits stop at their design
+      precision. Splitting the line, with a series in the centre and a continued fraction in the tails, gives
+      essentially full double precision for both &Phi; and 1 &minus; &Phi; at under a microsecond per value. This is
+      the same structure used by the standard library routines, which split the real line into ranges and use a
+      different expansion on each.
+    </p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK5</p>
+</footer>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="integrals.js"></script>
+<script src="normcdf.js"></script>
+<script src="chart.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
