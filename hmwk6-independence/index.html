@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistical Independence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="crop-marks" aria-hidden="true"></div>
+
+<div class="sheet">
+
+<header>
+  <div class="titleblock">
+    <div class="tb-cell"><span class="tb-label">doc</span><span class="tb-value">HW6 · INDEPENDENCE</span></div>
+    <div class="tb-cell"><span class="tb-label">author</span><span class="tb-value">A. Kais</span></div>
+    <div class="tb-cell"><span class="tb-label">id</span><span class="tb-value">1843634</span></div>
+    <div class="tb-cell"><span class="tb-label">course</span><span class="tb-value">Statistics</span></div>
+  </div>
+  <h1>Statistical independence: contingency tables and the chi-square test</h1>
+  <p class="subtitle">
+    Starting from raw records, the page builds the contingency table of two categorical variables, its marginal and
+    conditional frequencies, the table that independence would predict, and the chi-square statistic with its
+    p-value. The data are the 1973 Berkeley graduate admissions, a real dataset where the answer to "are these two
+    variables independent?" changes once a third variable is taken into account, which makes it a good case for
+    separating association from causation.
+  </p>
+</header>
+
+<main>
+
+  <!-- ============================================================ 01 -->
+  <section class="card">
+    <h2><span class="num">01</span>The dataset</h2>
+    <p>
+      In fall 1973 the University of California, Berkeley received 4526 applications to its six largest graduate
+      departments. Each application has three categorical attributes: the applicant's <strong>Gender</strong>
+      (Female, Male), the outcome <strong>Admit</strong> (Admitted, Rejected) and the department
+      <strong>Dept</strong>, anonymised as A to F. The figures were published by Bickel, Hammel and O'Connell,
+      "Sex Bias in Graduate Admissions: Data from Berkeley", <em>Science</em> 187 (1975), 398&ndash;404, and are
+      distributed with R as <code>datasets::UCBAdmissions</code>. I downloaded the CSV version from the Rdatasets
+      collection (<code>vincentarelbundock.github.io/Rdatasets</code>) and checked that its totals add up to 4526.
+    </p>
+    <p>
+      The file is already aggregated: 24 lines, one per combination, with a frequency column. To do the exercise
+      "programmatically" from the bottom, I first expand it into one record per applicant and shuffle the records
+      (seeded, so the order is reproducible). From that point on the code only sees a list of 4526 individual
+      observations, as it would with any raw bivariate dataset, and every table on this page is recomputed from it.
+    </p>
+    <div class="two-col">
+      <div>
+        <div class="chart-title">source file, 24 lines</div>
+        <div class="data-block scroll" id="srcTable"></div>
+      </div>
+      <div>
+        <div class="chart-title">after expansion: <span id="recCount"></span> records, first 10</div>
+        <div class="data-block scroll" id="recTable"></div>
+      </div>
+    </div>
+    <p class="hint">
+      The analysis below works on any pair of the three variables, on all departments or on one. The default is the
+      question that made the data famous: is the admission outcome independent of gender?
+    </p>
+    <div class="controls">
+      <label>X (rows) <select id="selX"></select></label>
+      <label>Y (columns) <select id="selY"></select></label>
+      <label>records <select id="selZ"></select></label>
+    </div>
+    <div id="ctWarn" class="data-block bad mono small" style="display:none"></div>
+  </section>
+
+  <!-- ============================================================ 02 -->
+  <section class="card">
+    <h2><span class="num">02</span>Contingency table, marginal and conditional frequencies</h2>
+    <p>
+      Let X take the values x<sub>1</sub>, &hellip;, x<sub>I</sub> and Y the values y<sub>1</sub>, &hellip;,
+      y<sub>J</sub>. The contingency table counts n<sub>ij</sub>, the number of records with X = x<sub>i</sub> and
+      Y = y<sub>j</sub>. The code makes one pass over the records: it collects the distinct values of each variable,
+      gives each value an index, and adds 1 to cell (i, j) for every record. The row and column totals are the
+      marginal counts n<sub>i·</sub> = &Sigma;<sub>j</sub> n<sub>ij</sub> and n<sub>·j</sub> = &Sigma;<sub>i</sub>
+      n<sub>ij</sub>, and N is the grand total.
+    </p>
+    <div class="formula">joint         f<sub>ij</sub> = n<sub>ij</sub> / N
+marginal      f<sub>i·</sub> = n<sub>i·</sub> / N,    f<sub>·j</sub> = n<sub>·j</sub> / N
+conditional   f(y<sub>j</sub> | x<sub>i</sub>) = n<sub>ij</sub> / n<sub>i·</sub>   (row profile),    f(x<sub>i</sub> | y<sub>j</sub>) = n<sub>ij</sub> / n<sub>·j</sub>   (column profile)</div>
+    <div class="controls">
+      <div class="seg" id="ctView">
+        <button data-v="counts" class="on">counts</button>
+        <button data-v="joint">joint f<sub>ij</sub></button>
+        <button data-v="row">f(Y | X)</button>
+        <button data-v="col">f(X | Y)</button>
+      </div>
+    </div>
+    <div class="chart-title" id="ctTitle"></div>
+    <div id="ctTable"></div>
+    <p>
+      For Gender &times; Admit the row profiles already tell most of the story: 44.5% of the men and 30.4% of the
+      women were admitted, while the marginal admission rate is 1755/4526 = 38.8%. If the outcome did not depend on
+      gender, both rows would show (up to noise) that same 38.8%. The column profiles say the same thing the other
+      way round: women are 40.5% of the applicants but only 31.7% of the admitted.
+    </p>
+    <div class="grid3" id="profCharts"></div>
+    <div class="legend" id="profLegend"></div>
+    <p class="hint">One panel per value of X. Each bar is a conditional frequency f(y | x); the dashed mark above or below it is the marginal f(y). Under independence every bar would reach its mark.</p>
+  </section>
+
+  <!-- ============================================================ 03 -->
+  <section class="card">
+    <h2><span class="num">03</span>Expected frequencies under independence</h2>
+    <p>
+      If X and Y were independent, the joint frequency of every cell would be the product of the two marginal
+      frequencies, f<sub>ij</sub> = f<sub>i·</sub> f<sub>·j</sub>. Multiplying by N gives the count that each cell
+      would contain if the margins stayed as they are and the association were removed:
+    </p>
+    <div class="formula">E<sub>ij</sub> = N · f<sub>i·</sub> · f<sub>·j</sub> = n<sub>i·</sub> · n<sub>·j</sub> / N</div>
+    <p>
+      The expected table has exactly the same row and column totals as the observed one, so the comparison is only
+      about how the counts are spread inside the table. Equivalently, every row of E has the same profile, the
+      marginal f<sub>·j</sub>. For Gender &times; Admit, E puts 711.5 admitted women in the table against the 557
+      observed, about 154 fewer admissions for women (and 154 more for men) than independence predicts.
+    </p>
+    <div class="controls">
+      <div class="seg" id="expView">
+        <button data-v="E" class="on">expected E</button>
+        <button data-v="D">O &minus; E</button>
+        <button data-v="R">adjusted residuals</button>
+        <button data-v="C">(O &minus; E)² / E</button>
+      </div>
+    </div>
+    <div id="expTable"></div>
+    <p>
+      To see which cells drive the result I use the adjusted residual
+      (n<sub>ij</sub> &minus; E<sub>ij</sub>) / &radic;(E<sub>ij</sub>(1 &minus; f<sub>i·</sub>)(1 &minus;
+      f<sub>·j</sub>)), which is approximately standard normal under independence; values beyond &plusmn;1.96 are
+      highlighted. For a 2 &times; 2 table the four adjusted residuals have the same absolute value (here 9.60),
+      because there is only one free cell once the margins are fixed, and its square is the chi-square statistic.
+    </p>
+  </section>
+
+  <!-- ============================================================ 04 -->
+  <section class="card">
+    <h2><span class="num">04</span>Chi-square statistic and p-value</h2>
+    <p>
+      Pearson's statistic adds the squared differences between observed and expected counts, each scaled by the
+      expected count:
+    </p>
+    <div class="formula">χ² = Σ<sub>i</sub> Σ<sub>j</sub> (n<sub>ij</sub> &minus; E<sub>ij</sub>)² / E<sub>ij</sub>        df = (I &minus; 1)(J &minus; 1)</div>
+    <p>
+      It is 0 exactly when the observed table equals the independence table and grows with the distance from it. Under
+      H<sub>0</sub> (independence in the population) and with large expected counts it follows approximately a
+      chi-square distribution. The degrees of freedom count the free parameters: a table with fixed N has IJ &minus; 1
+      free cell probabilities, the independence model has (I &minus; 1) + (J &minus; 1), and the difference is
+      (I &minus; 1)(J &minus; 1). The p-value is P(χ²<sub>df</sub> &ge; observed value).
+    </p>
+    <p>
+      <strong>Computing the p-value.</strong> With an integer number of degrees of freedom k the survival function
+      of the chi-square distribution has a closed form, obtained by integrating its density by parts:
+    </p>
+    <div class="formula">Q(x; 2) = e<sup>&minus;x/2</sup>        Q(x; 1) = 2 (1 &minus; &Phi;(&radic;x))
+Q(x; k + 2) = Q(x; k) + (x/2)<sup>k/2</sup> e<sup>&minus;x/2</sup> / &Gamma;(k/2 + 1)</div>
+    <p>
+      So for even k the p-value is a finite sum of Poisson-like terms, and for odd k it is the normal tail plus a
+      finite sum. For the normal tail I reuse the method of HW5 (power series below 2, Laplace's continued fraction
+      above), which keeps full relative accuracy even for p-values like 10<sup>&minus;22</sup>. The terms are formed
+      through logarithms so that nothing overflows for large statistics. To check the code independently I wrote a
+      short Python script with a different algorithm, the regularized incomplete gamma function Q(k/2, x/2) by power
+      series and continued fraction with <code>math.lgamma</code>; on every table of this page and on a set of test
+      points the two agree to at least 12 significant digits (relative difference below 10<sup>&minus;12</sup>, even at p &asymp; 10<sup>&minus;229</sup>), and both return 0.05 at the textbook critical values
+      3.841 (1 df) and 5.991 (2 df).
+    </p>
+    <div class="data-block mono small" id="testOut"></div>
+    <div class="data-block" id="verdict" style="margin-top:0.8rem"></div>
+    <p>
+      For Gender &times; Admit, χ² = 92.21 with 1 degree of freedom, p &asymp; 7.8 &middot; 10<sup>&minus;22</sup>.
+      The likelihood-ratio statistic G² and the Yates-corrected χ² (91.61, the value that R's <code>chisq.test</code>
+      reports by default for 2 &times; 2 tables) lead to the same conclusion. The odds ratio of 0.54 says that a woman's odds of
+      admission were about half a man's. Cramér's V = 0.14 is a reminder that a tiny p-value is not a strong
+      association: with N = 4526 even a moderate difference is far beyond sampling noise.
+    </p>
+    <h3>Check without the chi-square approximation: a permutation test</h3>
+    <p>
+      If X and Y are independent, the Y labels carry no information about X, so shuffling the Y column among the
+      records produces tables that are just as likely as the observed one. Shuffling keeps both margins, hence E, fixed.
+      Repeating it B times gives the distribution of χ² under H<sub>0</sub> directly from the data, and the
+      permutation p-value is (number of shuffled χ² &ge; observed + 1) / (B + 1).
+    </p>
+    <div class="controls">
+      <label>shuffles B
+        <select id="permB">
+          <option value="1000">1000</option>
+          <option value="2000" selected>2000</option>
+          <option value="10000">10000</option>
+        </select>
+      </label>
+      <button id="permRun">run again</button>
+    </div>
+    <div class="chart" id="permChart"></div>
+    <div class="legend" id="permLegend"></div>
+    <div class="data-block mono small" id="permOut" style="margin-top:0.8rem"></div>
+    <p class="hint">
+      The histogram of the shuffled tables follows the chi-square curve closely, which is the asymptotic theory working.
+      For Gender &times; Admit the observed 92.2 is far beyond every shuffled value (the largest of 2000 was 13.2),
+      so the permutation test can only say p &lt; 1/2001; the chi-square formula is what gives the actual order of
+      magnitude. Choose a single department in section 01 to see a case where the observed value falls inside the
+      histogram. With a few hundred applicants and fixed margins, χ² can only take a limited set of values, so the
+      histogram has gaps and the two p-values differ slightly (department E: 0.37 by permutation, 0.32 from the
+      chi-square curve); both lead to the same decision.
+    </p>
+  </section>
+
+  <!-- ============================================================ 05 -->
+  <section class="card">
+    <h2><span class="num">05</span>Independence in probability and in statistics</h2>
+    <p>
+      <strong>In probability</strong> independence is a property of a model. Two events A and B are independent when
+      P(A &cap; B) = P(A) P(B); when P(B) &gt; 0 this is the same as P(A | B) = P(A), knowing that B happened does
+      not change the probability of A. Two random variables are independent when every event defined by X is
+      independent of every event defined by Y; for discrete variables this reduces to
+    </p>
+    <div class="formula">P(X = x<sub>i</sub>, Y = y<sub>j</sub>) = P(X = x<sub>i</sub>) · P(Y = y<sub>j</sub>)   for every i, j
+equivalently   P(Y = y<sub>j</sub> | X = x<sub>i</sub>) = P(Y = y<sub>j</sub>)   for every i with P(X = x<sub>i</sub>) &gt; 0</div>
+    <p>
+      (in general, the joint distribution function is the product of the marginal ones,
+      F<sub>XY</sub>(x, y) = F<sub>X</sub>(x) F<sub>Y</sub>(y)). It is an exact statement about probabilities that
+      are known or assumed, and it is symmetric: X independent of Y is the same as Y independent of X. Independence
+      implies zero covariance but not the converse; for two binary variables, as in Gender &times; Admit, the two
+      notions do coincide.
+    </p>
+    <p>
+      <strong>In statistics</strong> the same definition is applied to observed frequencies. Descriptively, X and
+      Y are independent in a dataset when f<sub>ij</sub> = f<sub>i·</sub> f<sub>·j</sub> for every cell, that is,
+      when all row profiles are identical (and equal to the marginal of Y) or, equivalently, all column profiles are
+      identical. Then n<sub>ij</sub> = E<sub>ij</sub> in every cell and χ² = 0. In real data this practically never
+      happens exactly, if only because n<sub>i·</sub> n<sub>·j</sub> / N is usually not an integer. So the
+      statistical question is inferential: the records are a sample from a population with unknown probabilities
+      &pi;<sub>ij</sub>, and we test
+    </p>
+    <div class="formula">H<sub>0</sub>: &pi;<sub>ij</sub> = &pi;<sub>i·</sub> &pi;<sub>·j</sub> for all i, j     against     H<sub>1</sub>: not H<sub>0</sub></div>
+    <p>
+      The observed frequencies estimate the &pi;'s, E is the best estimate of the counts under H<sub>0</sub>, and
+      χ² measures whether the gap between the two is larger than random sampling would produce. Three consequences
+      are worth keeping in mind. A large p-value is not a proof of independence, only an absence of evidence against
+      it. A small p-value shows that there is an association, not how strong it is; for that I report Cramér's V,
+      which lies between 0 (independence in the data) and 1. And the conclusion concerns the population the data come
+      from: here, the 1973 applicants to these six departments.
+    </p>
+  </section>
+
+  <!-- ============================================================ 06 -->
+  <section class="card">
+    <h2><span class="num">06</span>Interpretation: one department at a time</h2>
+    <p>
+      The pooled table says that admission and gender are dependent, with men admitted more often. Before reading
+      that as discrimination, look at the other two pairs of variables (selectable in section 01):
+    </p>
+    <ul>
+      <li>
+        <strong>Dept &times; Admit</strong> is strongly dependent: χ² = 778.9 with 5 df, V = 0.41. Departments A and
+        B admitted about 64% and 63% of their applicants, F only 6.4%.
+      </li>
+      <li>
+        <strong>Gender &times; Dept</strong> is even more strongly dependent: χ² = 1068.4 with 5 df, V = 0.49. Men
+        applied mostly to A and B (51.5% of the men, against 7.2% of the women), women mostly to C, D, E and F, the
+        departments with low admission rates.
+      </li>
+    </ul>
+    <p>
+      So the department is associated with both variables, and it can produce an association between them by
+      itself. The right check is to test Gender &times; Admit inside each department, where the department is held
+      fixed:
+    </p>
+    <div id="strataTable"></div>
+    <div class="chart" id="strataChart"></div>
+    <div class="legend" id="strataLegend"></div>
+    <p class="hint">Admission rate of women and men in each department and in the pooled data. Marker area grows with the number of applicants (the pooled markers have a fixed size).</p>
+    <p>
+      In four departments out of six women were admitted <em>more</em> often than men, and in five of them (B to F)
+      the difference is small and not significant: p-values between 0.32 and 0.61. Only department A shows a
+      significant difference, χ² = 17.25, p = 3.3 &middot; 10<sup>&minus;5</sup>, and it goes the other way: 82.4%
+      of the women against 62.1% of the men were admitted. The pooled gap of 14 percentage points against women
+      appears because women applied mostly to departments that reject most applicants, regardless of gender.
+      This reversal of an association after splitting by a third variable is known as Simpson's paradox.
+    </p>
+    <p>
+      Since the six departments are separate samples, the six statistics (1 df each) can be added into a test of
+      conditional independence of gender and admission given the department: the sum is 19.94 with 6 df,
+      p = 0.0028, and it comes almost entirely from department A; without A the sum is 2.69 with 5 df, p = 0.75.
+      My conclusion for this dataset: gender and admission are statistically dependent overall; given the
+      department, the data show no evidence of dependence in departments B to F, and a dependence in favour of women
+      in department A.
+    </p>
+  </section>
+
+  <!-- ============================================================ 07 -->
+  <section class="card">
+    <h2><span class="num">07</span>Association is not causation</h2>
+    <p>
+      The chi-square test detects <strong>statistical association</strong>: the distribution of one variable changes
+      with the value of the other. It says nothing about why, and the statistic is symmetric in X and Y, so it cannot
+      even tell which variable would be the cause. A dependence in a table of observational data can come from
+      several different mechanisms:
+    </p>
+    <ul>
+      <li><strong>a causal effect</strong> of X on Y (or of Y on X);</li>
+      <li><strong>a common cause or confounder</strong> Z that influences both, as the department does here: an association between gender and admission appears in the pooled data with no gender effect inside the departments;</li>
+      <li><strong>selection</strong>: the records only include who applied, and who decides to apply where is itself not random;</li>
+      <li><strong>chance</strong>, which is the only alternative that the p-value controls.</li>
+    </ul>
+    <p>
+      The Berkeley case also shows that conditioning does not settle the causal question by itself. Splitting by
+      department is the right move if the department is regarded as a confounder, a choice made by the applicant
+      before the admission decision. If instead one asks why women applied to the more crowded departments, the
+      department becomes part of the path from gender to the outcome, and the pooled difference is relevant again.
+      The data alone cannot decide between these readings; the decision comes from knowledge of how the data were
+      generated. Even inside a department, the similar admission rates do not prove the absence of any effect, since
+      characteristics that were not recorded (grades, references, the specific programme) could differ between the
+      two groups.
+    </p>
+    <p>
+      A causal claim needs either a design that breaks the link with every other variable, typically randomisation,
+      or an explicit causal model together with data on the relevant confounders. What the chi-square test can
+      establish is narrower and still useful: whether the observed association is too large to be explained by
+      sampling variation, and where in the table it is located.
+    </p>
+  </section>
+
+  <!-- ============================================================ 08 -->
+  <section class="card">
+    <h2><span class="num">08</span>Any bivariate dataset</h2>
+    <p>
+      The same code works on any categorical dataset. Paste a CSV with a header line, choose the two columns, and,
+      if each line stands for several units, the frequency column. The box starts with the Berkeley file.
+    </p>
+    <div class="controls">
+      <label class="wide">CSV <textarea id="ownCsv" rows="7" spellcheck="false"></textarea></label>
+      <label>X column <select id="ownX"></select></label>
+      <label>Y column <select id="ownY"></select></label>
+      <label>frequency column <select id="ownF"></select></label>
+      <button id="ownGo">analyse</button>
+    </div>
+    <div id="ownOut"></div>
+  </section>
+
+</main>
+
+<footer>Auda Kais &mdash; 1843634 &mdash; Statistics, HMWK6</footer>
+
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="chart.js"></script>
+<script src="independence.js"></script>
+<script src="data.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
