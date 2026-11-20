@@ -7,3 +7,4 @@
 - hmwk4-welford/ — Welford recurrence, sampling mean and variance across m hackers
 - hmwk5-integrals-normal-cdf/ — Riemann vs. Lebesgue sums, numerical computation of the normal CDF
 - hmwk6-independence/ — contingency tables, expected frequencies under independence, chi-square test on the Berkeley admissions data
+- hmwk7-convergence-bayes/ — modes of convergence in the LLN and CLT, the sqrt(n) rate, Bayes theorem and Beta-Binomial updating
